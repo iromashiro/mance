@@ -6,7 +6,6 @@ use App\Models\News;
 use App\Models\NewsView;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 
 class NewsController extends Controller
 {
@@ -15,96 +14,88 @@ class NewsController extends Controller
      */
     public function index(Request $request)
     {
-        $news = Cache::remember('news_page_' . $request->get('page', 1), 3600, function () use ($request) {
-            return News::published()
-                ->with('author')
-                ->when($request->category, function ($query) use ($request) {
-                    return $query->where('category', $request->category);
-                })
-                ->when($request->search, function ($query) use ($request) {
-                    return $query->where(function ($q) use ($request) {
-                        $q->where('title', 'like', '%' . $request->search . '%')
-                            ->orWhere('excerpt', 'like', '%' . $request->search . '%');
-                    });
-                })
-                ->latest('published_at')
-                ->paginate(12);
-        });
+        $query = News::where('status', 'published')
+            ->with('author');
 
-        // Get news categories
-        $categories = News::published()
-            ->distinct()
-            ->pluck('category')
-            ->filter()
-            ->sort();
+        // Search
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('excerpt', 'like', "%{$search}%")
+                    ->orWhere('content', 'like', "%{$search}%");
+            });
+        }
 
-        // Get trending news (most viewed in last 7 days)
-        $trendingNews = Cache::remember('trending_news', 3600, function () {
-            return News::published()
-                ->withCount(['views' => function ($query) {
-                    $query->where('viewed_at', '>=', now()->subDays(7));
-                }])
-                ->orderBy('views_count', 'desc')
-                ->limit(5)
-                ->get();
-        });
+        // Category filter (if news has categories)
+        if ($request->has('category') && $request->category) {
+            $query->where('category', $request->category);
+        }
 
-        return view('news.index', compact('news', 'categories', 'trendingNews'));
+        $news = $query->latest('published_at')
+            ->paginate(9);
+
+        return view('news.index', compact('news'));
     }
 
     /**
-     * Display news detail
+     * Display news details
      */
-    public function show($slug)
+    public function show(News $news)
     {
-        $news = News::where('slug', $slug)
-            ->published()
-            ->with('author')
-            ->firstOrFail();
+        // Check if news is published
+        if ($news->status !== 'published' && (!Auth::check() || !Auth::user()->isAdmin())) {
+            abort(404);
+        }
 
-        // Record view if user is logged in
+        // Track view
+        $this->trackView($news);
+
+        // Get related news
+        $relatedNews = News::where('status', 'published')
+            ->where('id', '!=', $news->id)
+            ->latest('published_at')
+            ->take(3)
+            ->get();
+
+        return view('news.show', compact('news', 'relatedNews'));
+    }
+
+    /**
+     * Track news view
+     */
+    public function trackView(News $news)
+    {
+        // Check if user already viewed this news today
         if (Auth::check()) {
             $existingView = NewsView::where('news_id', $news->id)
                 ->where('user_id', Auth::id())
-                ->whereDate('viewed_at', today())
+                ->whereDate('created_at', today())
                 ->first();
 
             if (!$existingView) {
                 NewsView::create([
                     'news_id' => $news->id,
                     'user_id' => Auth::id(),
-                    'viewed_at' => now(),
+                    'ip_address' => request()->ip(),
                 ]);
             }
+        } else {
+            // Track by IP for guests
+            $existingView = NewsView::where('news_id', $news->id)
+                ->where('ip_address', request()->ip())
+                ->whereDate('created_at', today())
+                ->first();
 
-            // Log activity
-            Auth::user()->activities()->create([
-                'action' => 'view_news',
-                'entity_type' => 'news',
-                'entity_id' => $news->id,
-                'ip_address' => request()->ip(),
-                'metadata' => json_encode([
-                    'news_title' => $news->title,
-                    'timestamp' => now(),
-                ]),
-            ]);
+            if (!$existingView) {
+                NewsView::create([
+                    'news_id' => $news->id,
+                    'user_id' => null,
+                    'ip_address' => request()->ip(),
+                ]);
+            }
         }
 
-        // Get related news
-        $relatedNews = Cache::remember("related_news_{$news->id}", 3600, function () use ($news) {
-            return News::published()
-                ->where('id', '!=', $news->id)
-                ->where(function ($query) use ($news) {
-                    $query->where('category', $news->category);
-                })
-                ->latest('published_at')
-                ->limit(4)
-                ->get();
-        });
-
-        // Get view count
-        $viewCount = $news->views()->count();
-
-        return view('news.show', compact('news', 'relatedNews', 'viewCount'));
+        return response()->json(['success' => true]);
     }
 }

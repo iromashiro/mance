@@ -19,17 +19,15 @@ class ProfileController extends Controller
         // Get user statistics
         $stats = [
             'total_complaints' => $user->complaints()->count(),
-            'pending_complaints' => $user->complaints()->pending()->count(),
-            'resolved_complaints' => $user->complaints()->resolved()->count(),
+            'completed_complaints' => $user->complaints()->where('status', 'completed')->count(),
+            'favorite_apps' => $user->favorites()->count(),
             'total_activities' => $user->activities()->count(),
-            'favorite_apps' => $user->favoriteApplications()->count(),
-            'unread_notifications' => $user->notifications()->unread()->count(),
         ];
 
         // Get recent activities
         $recentActivities = $user->activities()
-            ->latest('created_at')
-            ->limit(10)
+            ->latest()
+            ->take(10)
             ->get();
 
         return view('profile.index', compact('user', 'stats', 'recentActivities'));
@@ -43,37 +41,17 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email,' . $user->id],
-            'category' => ['required', 'in:pelajar,pegawai,pencari_kerja,pengusaha'],
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
+            'category' => 'required|in:pelajar,pegawai,pencaker,wirausaha,umum',
         ]);
 
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
+            'phone' => $request->phone,
             'category' => $request->category,
-        ]);
-
-        // Log activity
-        $user->activities()->create([
-            'action' => 'update_profile',
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
-            'ip_address' => $request->ip(),
-            'metadata' => json_encode([
-                'updated_fields' => array_keys($request->only(['name', 'email', 'category'])),
-                'timestamp' => now(),
-            ]),
-        ]);
-
-        // Create notification
-        $user->notifications()->create([
-            'title' => 'Profil Berhasil Diperbarui',
-            'message' => 'Informasi profil Anda telah berhasil diperbarui.',
-            'type' => 'profile',
-            'data' => json_encode([
-                'updated_at' => now(),
-            ]),
         ]);
 
         return back()->with('success', 'Profil berhasil diperbarui.');
@@ -85,38 +63,41 @@ class ProfileController extends Controller
     public function updatePassword(Request $request)
     {
         $request->validate([
-            'current_password' => ['required', 'current_password'],
+            'current_password' => 'required|current_password',
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
         $user = Auth::user();
-
         $user->update([
             'password' => Hash::make($request->password),
         ]);
 
-        // Log activity
-        $user->activities()->create([
-            'action' => 'update_password',
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
-            'ip_address' => $request->ip(),
-            'metadata' => json_encode([
-                'timestamp' => now(),
-            ]),
-        ]);
-
-        // Create notification
-        $user->notifications()->create([
-            'title' => 'Password Berhasil Diubah',
-            'message' => 'Password Anda telah berhasil diubah. Jika Anda tidak melakukan perubahan ini, segera hubungi administrator.',
-            'type' => 'security',
-            'data' => json_encode([
-                'updated_at' => now(),
-                'ip_address' => $request->ip(),
-            ]),
-        ]);
-
         return back()->with('success', 'Password berhasil diubah.');
+    }
+
+    /**
+     * Upload profile photo (optional)
+     */
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $user = Auth::user();
+
+        // Delete old photo if exists
+        if ($user->profile_photo_path) {
+            \Storage::disk('public')->delete($user->profile_photo_path);
+        }
+
+        // Store new photo
+        $path = $request->file('photo')->store('profile-photos', 'public');
+
+        $user->update([
+            'profile_photo_path' => $path,
+        ]);
+
+        return back()->with('success', 'Foto profil berhasil diperbarui.');
     }
 }

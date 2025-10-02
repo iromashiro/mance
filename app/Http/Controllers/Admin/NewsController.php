@@ -5,11 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\News;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class NewsController extends Controller
 {
@@ -18,28 +16,26 @@ class NewsController extends Controller
      */
     public function index(Request $request)
     {
-        $news = News::with('author')
-            ->when($request->search, function ($query) use ($request) {
-                return $query->where('title', 'like', '%' . $request->search . '%')
-                    ->orWhere('content', 'like', '%' . $request->search . '%');
-            })
-            ->when($request->status, function ($query) use ($request) {
-                if ($request->status === 'published') {
-                    return $query->where('is_published', true);
-                } else {
-                    return $query->where('is_published', false);
-                }
-            })
-            ->when($request->category, function ($query) use ($request) {
-                return $query->where('category', $request->category);
-            })
-            ->latest()
-            ->paginate(20);
+        $query = News::with('author');
 
-        // Get categories for filter
-        $categories = News::distinct()->pluck('category')->filter()->sort();
+        // Search filter
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('excerpt', 'like', "%{$search}%")
+                    ->orWhere('content', 'like', "%{$search}%");
+            });
+        }
 
-        return view('admin.news.index', compact('news', 'categories'));
+        // Status filter
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $news = $query->latest()->paginate(20);
+
+        return view('admin.news.index', compact('news'));
     }
 
     /**
@@ -47,8 +43,7 @@ class NewsController extends Controller
      */
     public function create()
     {
-        $categories = ['Pendidikan', 'Kesehatan', 'Infrastruktur', 'Ekonomi', 'Event', 'Pengumuman', 'Pembangunan'];
-        return view('admin.news.create', compact('categories'));
+        return view('admin.news.create');
     }
 
     /**
@@ -57,204 +52,127 @@ class NewsController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string|max:500',
-            'slug' => 'nullable|string|unique:news',
+            'title' => 'required|string|max:255',
+            'slug' => 'nullable|string|unique:news,slug',
+            'excerpt' => 'required|string|max:500',
             'content' => 'required|string',
-            'excerpt' => 'nullable|string',
-            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'category' => 'required|string|max:50',
-            'is_published' => 'boolean',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'status' => 'required|in:draft,published',
             'published_at' => 'nullable|date',
         ]);
 
-        DB::beginTransaction();
+        $data = $request->only(['title', 'excerpt', 'content', 'status']);
 
-        try {
-            $data = $request->except('thumbnail');
+        // Generate slug if not provided
+        $data['slug'] = $request->slug ?: Str::slug($request->title);
 
-            // Generate slug if not provided
-            if (empty($data['slug'])) {
-                $data['slug'] = Str::slug($data['title']);
+        // Set author
+        $data['author'] = Auth::user()->name;
 
-                // Ensure unique slug
-                $count = 1;
-                while (News::where('slug', $data['slug'])->exists()) {
-                    $data['slug'] = Str::slug($data['title']) . '-' . $count;
-                    $count++;
-                }
-            }
-
-            // Generate excerpt if not provided
-            if (empty($data['excerpt'])) {
-                $data['excerpt'] = Str::limit(strip_tags($data['content']), 160);
-            }
-
-            // Handle thumbnail upload
-            if ($request->hasFile('thumbnail')) {
-                $thumbnailPath = $request->file('thumbnail')->store('news/thumbnails', 'public');
-                $data['thumbnail_path'] = '/storage/' . $thumbnailPath;
-            }
-
-            // Set author
-            $data['author_id'] = Auth::id();
-
-            // Set published_at if publishing
-            if ($request->is_published && empty($data['published_at'])) {
-                $data['published_at'] = now();
-            }
-
-            $news = News::create($data);
-
-            // Clear cache
-            Cache::forget('latest_news_dashboard');
-            Cache::forget('news_page_1');
-
-            DB::commit();
-
-            return redirect()->route('admin.news.index')
-                ->with('success', 'Berita berhasil ditambahkan.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('news', 'public');
+            $data['image_url'] = $path;
         }
+
+        // Set published date
+        if ($request->status === 'published') {
+            $data['published_at'] = $request->published_at ?: now();
+        }
+
+        News::create($data);
+
+        return redirect()->route('admin.news.index')
+            ->with('success', 'Berita berhasil dibuat.');
     }
 
     /**
-     * Display news detail
+     * Display news details
      */
-    public function show($id)
+    public function show(News $news)
     {
-        $news = News::with(['author', 'views'])->findOrFail($id);
-        $viewCount = $news->views()->count();
+        $news->load('views');
 
-        return view('admin.news.show', compact('news', 'viewCount'));
+        return view('admin.news.show', compact('news'));
     }
 
     /**
      * Show form for editing news
      */
-    public function edit($id)
+    public function edit(News $news)
     {
-        $news = News::findOrFail($id);
-        $categories = ['Pendidikan', 'Kesehatan', 'Infrastruktur', 'Ekonomi', 'Event', 'Pengumuman', 'Pembangunan'];
-
-        return view('admin.news.edit', compact('news', 'categories'));
+        return view('admin.news.edit', compact('news'));
     }
 
     /**
      * Update news
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, News $news)
     {
-        $news = News::findOrFail($id);
-
         $request->validate([
-            'title' => 'required|string|max:500',
-            'slug' => 'nullable|string|unique:news,slug,' . $id,
+            'title' => 'required|string|max:255',
+            'slug' => 'nullable|string|unique:news,slug,' . $news->id,
+            'excerpt' => 'required|string|max:500',
             'content' => 'required|string',
-            'excerpt' => 'nullable|string',
-            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'category' => 'required|string|max:50',
-            'is_published' => 'boolean',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'status' => 'required|in:draft,published',
             'published_at' => 'nullable|date',
         ]);
 
-        DB::beginTransaction();
+        $data = $request->only(['title', 'excerpt', 'content', 'status']);
 
-        try {
-            $data = $request->except('thumbnail');
-
-            // Generate slug if changed
-            if (empty($data['slug'])) {
-                $data['slug'] = Str::slug($data['title']);
-
-                // Ensure unique slug
-                $count = 1;
-                while (News::where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
-                    $data['slug'] = Str::slug($data['title']) . '-' . $count;
-                    $count++;
-                }
-            }
-
-            // Generate excerpt if not provided
-            if (empty($data['excerpt'])) {
-                $data['excerpt'] = Str::limit(strip_tags($data['content']), 160);
-            }
-
-            // Handle thumbnail upload
-            if ($request->hasFile('thumbnail')) {
-                // Delete old thumbnail if exists
-                if ($news->thumbnail_path && Storage::disk('public')->exists(str_replace('/storage/', '', $news->thumbnail_path))) {
-                    Storage::disk('public')->delete(str_replace('/storage/', '', $news->thumbnail_path));
-                }
-
-                $thumbnailPath = $request->file('thumbnail')->store('news/thumbnails', 'public');
-                $data['thumbnail_path'] = '/storage/' . $thumbnailPath;
-            }
-
-            // Set published_at if publishing
-            if ($request->is_published && !$news->is_published) {
-                $data['published_at'] = $data['published_at'] ?? now();
-            }
-
-            $news->update($data);
-
-            // Clear cache
-            Cache::flush();
-
-            DB::commit();
-
-            return redirect()->route('admin.news.index')
-                ->with('success', 'Berita berhasil diperbarui.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        // Update slug if provided
+        if ($request->slug) {
+            $data['slug'] = $request->slug;
         }
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image
+            if ($news->image_url) {
+                Storage::disk('public')->delete($news->image_url);
+            }
+
+            $path = $request->file('image')->store('news', 'public');
+            $data['image_url'] = $path;
+        }
+
+        // Update published date
+        if ($request->status === 'published' && !$news->published_at) {
+            $data['published_at'] = $request->published_at ?: now();
+        }
+
+        $news->update($data);
+
+        return redirect()->route('admin.news.show', $news)
+            ->with('success', 'Berita berhasil diperbarui.');
     }
 
     /**
      * Delete news
      */
-    public function destroy($id)
+    public function destroy(News $news)
     {
-        $news = News::findOrFail($id);
-
-        DB::beginTransaction();
-
-        try {
-            // Delete thumbnail if exists
-            if ($news->thumbnail_path && Storage::disk('public')->exists(str_replace('/storage/', '', $news->thumbnail_path))) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $news->thumbnail_path));
-            }
-
-            $news->delete();
-
-            // Clear cache
-            Cache::flush();
-
-            DB::commit();
-
-            return redirect()->route('admin.news.index')
-                ->with('success', 'Berita berhasil dihapus.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        // Delete image if exists
+        if ($news->image_url) {
+            Storage::disk('public')->delete($news->image_url);
         }
+
+        $news->delete();
+
+        return redirect()->route('admin.news.index')
+            ->with('success', 'Berita berhasil dihapus.');
     }
 
     /**
      * Publish news
      */
-    public function publish($id)
+    public function publish(News $news)
     {
-        $news = News::findOrFail($id);
-
         $news->update([
-            'is_published' => true,
-            'published_at' => $news->published_at ?? now(),
+            'status' => 'published',
+            'published_at' => now(),
         ]);
-
-        Cache::flush();
 
         return back()->with('success', 'Berita berhasil dipublikasikan.');
     }
@@ -262,16 +180,12 @@ class NewsController extends Controller
     /**
      * Unpublish news
      */
-    public function unpublish($id)
+    public function unpublish(News $news)
     {
-        $news = News::findOrFail($id);
-
         $news->update([
-            'is_published' => false,
+            'status' => 'draft',
         ]);
 
-        Cache::flush();
-
-        return back()->with('success', 'Berita berhasil dibatalkan publikasi.');
+        return back()->with('success', 'Berita berhasil di-unpublish.');
     }
 }

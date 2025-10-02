@@ -17,7 +17,10 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 
 // Public routes
 Route::get('/', function () {
-    return view('welcome');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 })->name('home');
 
 // Authentication routes
@@ -26,6 +29,15 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
     Route::get('/register', [RegisterController::class, 'index'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
+
+    // Password Reset Routes (stub for now - will redirect to login)
+    Route::get('/forgot-password', function () {
+        return redirect()->route('login')->with('info', 'Silakan hubungi admin untuk reset password.');
+    })->name('password.request');
+
+    Route::get('/reset-password', function () {
+        return redirect()->route('login');
+    })->name('password.reset');
 });
 
 // Authenticated user routes
@@ -37,20 +49,20 @@ Route::middleware('auth')->group(function () {
 
     // Applications/Services
     Route::get('/applications', [ApplicationController::class, 'index'])->name('applications.index');
-    Route::get('/applications/{slug}', [ApplicationController::class, 'show'])->name('applications.show');
-    Route::post('/applications/{id}/favorite', [ApplicationController::class, 'toggleFavorite'])->name('applications.favorite');
+    Route::get('/applications/{application}', [ApplicationController::class, 'show'])->name('applications.show');
+    Route::post('/applications/{application}/favorite', [ApplicationController::class, 'toggleFavorite'])->name('applications.favorite');
 
     // News
     Route::get('/news', [NewsController::class, 'index'])->name('news.index');
-    Route::get('/news/{slug}', [NewsController::class, 'show'])->name('news.show');
+    Route::get('/news/{news}', [NewsController::class, 'show'])->name('news.show');
 
     // Complaints (Pengaduan)
     Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');
     Route::get('/complaints/create', [ComplaintController::class, 'create'])->name('complaints.create');
     Route::post('/complaints', [ComplaintController::class, 'store'])->name('complaints.store');
-    Route::get('/complaints/{ticket_number}', [ComplaintController::class, 'show'])->name('complaints.show');
-    Route::post('/complaints/{id}/vote', [ComplaintController::class, 'vote'])->name('complaints.vote');
-    Route::post('/complaints/{id}/rate', [ComplaintController::class, 'rate'])->name('complaints.rate');
+    Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
+    Route::post('/complaints/{complaint}/vote', [ComplaintController::class, 'vote'])->name('complaints.vote');
+    Route::post('/complaints/{complaint}/response', [ComplaintController::class, 'addResponse'])->name('complaints.response');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -59,7 +71,7 @@ Route::middleware('auth')->group(function () {
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 });
 
@@ -73,26 +85,35 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // News Management
     Route::resource('news', AdminNewsController::class);
-    Route::post('news/{id}/publish', [AdminNewsController::class, 'publish'])->name('news.publish');
-    Route::post('news/{id}/unpublish', [AdminNewsController::class, 'unpublish'])->name('news.unpublish');
+    Route::post('news/{news}/publish', [AdminNewsController::class, 'publish'])->name('news.publish');
+    Route::post('news/{news}/unpublish', [AdminNewsController::class, 'unpublish'])->name('news.unpublish');
 
     // Complaints Management
     Route::get('complaints', [AdminComplaintController::class, 'index'])->name('complaints.index');
-    Route::get('complaints/{id}', [AdminComplaintController::class, 'show'])->name('complaints.show');
-    Route::post('complaints/{id}/update-status', [AdminComplaintController::class, 'updateStatus'])->name('complaints.update-status');
-    Route::post('complaints/{id}/respond', [AdminComplaintController::class, 'respond'])->name('complaints.respond');
+    Route::get('complaints/{complaint}', [AdminComplaintController::class, 'show'])->name('complaints.show');
+    Route::get('complaints/{complaint}/edit', [AdminComplaintController::class, 'edit'])->name('complaints.edit');
+    Route::put('complaints/{complaint}', [AdminComplaintController::class, 'update'])->name('complaints.update');
+    Route::post('complaints/{complaint}/respond', [AdminComplaintController::class, 'respond'])->name('complaints.respond');
 
     // Users Management
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
-    Route::get('users/{id}', [AdminUserController::class, 'show'])->name('users.show');
-    Route::post('users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');
+    Route::get('users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+    Route::get('users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+    Route::put('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
 
-    // Analytics
-    Route::get('analytics', [AdminDashboardController::class, 'analytics'])->name('analytics');
+    // Categories Management
+    Route::get('categories', [AdminDashboardController::class, 'categories'])->name('categories.index');
 
-    // Broadcast Notification
-    Route::get('notifications/broadcast', [AdminDashboardController::class, 'broadcastForm'])->name('notifications.broadcast');
-    Route::post('notifications/broadcast', [AdminDashboardController::class, 'sendBroadcast'])->name('notifications.send-broadcast');
+    // Reports & Settings
+    Route::get('reports', [AdminDashboardController::class, 'reports'])->name('reports');
+    Route::get('settings', [AdminDashboardController::class, 'settings'])->name('settings');
+    Route::get('profile', [AdminDashboardController::class, 'profile'])->name('profile');
+});
+
+// API Routes for AJAX/Tracking
+Route::prefix('api')->middleware('auth')->group(function () {
+    Route::post('/applications/{application}/track', [ApplicationController::class, 'track']);
+    Route::post('/news/{news}/view', [NewsController::class, 'trackView']);
 });
 
 // PWA routes
@@ -101,9 +122,10 @@ Route::get('/manifest.json', function () {
 });
 
 Route::get('/service-worker.js', function () {
-    return response()->file(public_path('service-worker.js'));
+    return response()->file(public_path('service-worker.js'))
+        ->header('Content-Type', 'application/javascript');
 });
 
 Route::get('/offline', function () {
-    return view('offline');
+    return response()->file(public_path('offline.html'));
 })->name('offline');

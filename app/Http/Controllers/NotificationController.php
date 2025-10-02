@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,47 +13,41 @@ class NotificationController extends Controller
      */
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $query = Auth::user()->notifications();
 
-        // Get notifications with pagination
-        $notifications = $user->notifications()
-            ->when($request->filter === 'unread', function ($query) {
-                return $query->unread();
-            })
-            ->when($request->filter === 'read', function ($query) {
-                return $query->read();
-            })
-            ->when($request->type, function ($query) use ($request) {
-                return $query->where('type', $request->type);
-            })
-            ->latest()
-            ->paginate(20);
+        // Filter by read status
+        if ($request->has('status')) {
+            if ($request->status === 'unread') {
+                $query->where('is_read', false);
+            } elseif ($request->status === 'read') {
+                $query->where('is_read', true);
+            }
+        }
 
-        // Get unread count
-        $unreadCount = $user->notifications()->unread()->count();
+        $notifications = $query->latest()->paginate(20);
 
-        // Get notification types for filter
-        $types = $user->notifications()
-            ->distinct()
-            ->pluck('type')
-            ->filter()
-            ->sort();
-
-        return view('notifications.index', compact('notifications', 'unreadCount', 'types'));
+        return view('notifications.index', compact('notifications'));
     }
 
     /**
-     * Mark notification as read
+     * Mark notification as read and redirect to action URL
      */
-    public function markAsRead($id)
+    public function read(Notification $notification)
     {
-        $notification = Auth::user()->notifications()->findOrFail($id);
-        $notification->markAsRead();
+        // Check if notification belongs to current user
+        if ($notification->user_id !== Auth::id()) {
+            abort(403);
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Notifikasi telah dibaca',
-        ]);
+        // Mark as read
+        $notification->update(['is_read' => true]);
+
+        // Redirect to action URL if exists
+        if ($notification->action_url) {
+            return redirect($notification->action_url);
+        }
+
+        return back();
     }
 
     /**
@@ -61,9 +56,36 @@ class NotificationController extends Controller
     public function markAllAsRead()
     {
         Auth::user()->notifications()
-            ->unread()
-            ->update(['read_at' => now()]);
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
 
         return back()->with('success', 'Semua notifikasi telah ditandai sebagai dibaca.');
+    }
+
+    /**
+     * Delete notification
+     */
+    public function destroy(Notification $notification)
+    {
+        // Check if notification belongs to current user
+        if ($notification->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $notification->delete();
+
+        return back()->with('success', 'Notifikasi berhasil dihapus.');
+    }
+
+    /**
+     * Delete all read notifications
+     */
+    public function clearRead()
+    {
+        Auth::user()->notifications()
+            ->where('is_read', true)
+            ->delete();
+
+        return back()->with('success', 'Notifikasi yang sudah dibaca berhasil dihapus.');
     }
 }

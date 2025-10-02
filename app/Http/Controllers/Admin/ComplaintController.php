@@ -14,229 +14,209 @@ use Illuminate\Support\Facades\DB;
 class ComplaintController extends Controller
 {
     /**
-     * Display listing of complaints
+     * Display listing of complaints for admin
      */
     public function index(Request $request)
     {
-        $complaints = Complaint::with(['user', 'category'])
-            ->when($request->status, function ($query) use ($request) {
-                return $query->where('status', $request->status);
-            })
-            ->when($request->priority, function ($query) use ($request) {
-                return $query->where('priority', $request->priority);
-            })
-            ->when($request->category, function ($query) use ($request) {
-                return $query->where('category_id', $request->category);
-            })
-            ->when($request->search, function ($query) use ($request) {
-                return $query->where(function ($q) use ($request) {
-                    $q->where('ticket_number', 'like', '%' . $request->search . '%')
-                        ->orWhere('title', 'like', '%' . $request->search . '%');
-                });
-            })
-            ->latest()
-            ->paginate(20);
+        $query = Complaint::with(['user', 'category', 'responses']);
 
-        // Get categories for filter
-        $categories = ComplaintCategory::active()->get();
+        // Search filter
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('ticket_number', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
 
-        // Get stats
-        $stats = [
-            'total' => Complaint::count(),
+        // Status filter
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        // Priority filter
+        if ($request->has('priority') && $request->priority) {
+            $query->where('priority', $request->priority);
+        }
+
+        // Category filter
+        if ($request->has('category') && $request->category) {
+            $query->where('category_id', $request->category);
+        }
+
+        // Get statistics
+        $statistics = [
             'pending' => Complaint::where('status', 'pending')->count(),
-            'in_progress' => Complaint::where('status', 'in_progress')->count(),
-            'resolved' => Complaint::where('status', 'resolved')->count(),
+            'process' => Complaint::where('status', 'process')->count(),
+            'completed' => Complaint::where('status', 'completed')->count(),
             'rejected' => Complaint::where('status', 'rejected')->count(),
         ];
 
-        return view('admin.complaints.index', compact('complaints', 'categories', 'stats'));
+        $complaints = $query->latest()->paginate(20);
+
+        return view('admin.complaints.index', compact('complaints', 'statistics'));
     }
 
     /**
-     * Display complaint detail
+     * Display complaint details for admin
      */
-    public function show($id)
+    public function show(Complaint $complaint)
     {
-        $complaint = Complaint::with([
-            'user',
-            'category',
-            'images',
-            'responses.admin',
-            'votes'
-        ])->findOrFail($id);
+        $complaint->load(['user', 'category', 'images', 'responses.user', 'votes']);
 
-        // Calculate priority score
-        $priorityScore = $this->calculatePriority($complaint);
-
-        // Get response time if resolved
-        $responseTime = null;
-        if ($complaint->resolved_at) {
-            $responseTime = $complaint->created_at->diffForHumans($complaint->resolved_at, true);
-        }
-
-        return view('admin.complaints.show', compact('complaint', 'priorityScore', 'responseTime'));
+        return view('admin.complaints.show', compact('complaint'));
     }
 
     /**
-     * Update complaint status
+     * Show edit form for complaint
      */
-    public function updateStatus(Request $request, $id)
+    public function edit(Complaint $complaint)
     {
-        $complaint = Complaint::findOrFail($id);
+        $categories = ComplaintCategory::where('is_active', true)->get();
 
+        return view('admin.complaints.edit', compact('complaint', 'categories'));
+    }
+
+    /**
+     * Update complaint status and details
+     */
+    public function update(Request $request, Complaint $complaint)
+    {
         $request->validate([
-            'status' => 'required|in:pending,in_progress,resolved,rejected',
-            'priority' => 'nullable|in:low,normal,high,urgent',
-            'resolution_note' => 'nullable|string',
+            'status' => 'required|in:pending,process,completed,rejected',
+            'priority' => 'required|in:low,medium,high',
+            'admin_notes' => 'nullable|string',
         ]);
 
-        // Check if status transition is allowed
-        if (!$complaint->canTransitionTo($request->status)) {
-            return back()->with('error', 'Status transition tidak diperbolehkan.');
+        $oldStatus = $complaint->status;
+
+        // Update complaint
+        $complaint->update([
+            'status' => $request->status,
+            'priority' => $request->priority,
+            'admin_notes' => $request->admin_notes,
+        ]);
+
+        // Update timestamps based on status
+        if ($request->status === 'process' && $oldStatus === 'pending') {
+            $complaint->update(['processed_at' => now()]);
+        } elseif (in_array($request->status, ['completed', 'rejected'])) {
+            $complaint->update(['completed_at' => now()]);
         }
 
-        DB::beginTransaction();
+        // Send notification to complaint owner
+        $statusText = [
+            'pending' => 'menunggu',
+            'process' => 'sedang diproses',
+            'completed' => 'selesai',
+            'rejected' => 'ditolak',
+        ];
 
-        try {
-            $oldStatus = $complaint->status;
+        $complaint->user->notifications()->create([
+            'title' => 'Update Status Pengaduan',
+            'message' => 'Pengaduan Anda ' . $complaint->ticket_number . ' telah diubah statusnya menjadi: ' . $statusText[$request->status],
+            'type' => 'complaint_update',
+            'action_url' => route('complaints.show', $complaint),
+        ]);
 
-            $updateData = [
+        return redirect()->route('admin.complaints.show', $complaint)
+            ->with('success', 'Status pengaduan berhasil diperbarui.');
+    }
+
+    /**
+     * Add admin response to complaint
+     */
+    public function respond(Request $request, Complaint $complaint)
+    {
+        $request->validate([
+            'response' => 'required|string|min:10',
+        ]);
+
+        // Create response
+        $response = $complaint->responses()->create([
+            'user_id' => Auth::id(),
+            'response' => $request->response,
+        ]);
+
+        // Automatically update status to 'process' if still pending
+        if ($complaint->status === 'pending') {
+            $complaint->update([
+                'status' => 'process',
+                'processed_at' => now(),
+            ]);
+        }
+
+        // Send notification to complaint owner
+        $complaint->user->notifications()->create([
+            'title' => 'Tanggapan Admin',
+            'message' => 'Admin telah memberikan tanggapan pada pengaduan Anda: ' . $complaint->ticket_number,
+            'type' => 'complaint_response',
+            'action_url' => route('complaints.show', $complaint),
+        ]);
+
+        return back()->with('success', 'Tanggapan berhasil ditambahkan.');
+    }
+
+    /**
+     * Bulk update complaints status
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'complaint_ids' => 'required|array',
+            'complaint_ids.*' => 'exists:complaints,id',
+            'status' => 'required|in:pending,process,completed,rejected',
+        ]);
+
+        Complaint::whereIn('id', $request->complaint_ids)
+            ->update([
                 'status' => $request->status,
-            ];
-
-            if ($request->priority) {
-                $updateData['priority'] = $request->priority;
-            }
-
-            if ($request->status === 'resolved') {
-                $updateData['resolved_at'] = now();
-                $updateData['resolution_note'] = $request->resolution_note;
-            }
-
-            $complaint->update($updateData);
-
-            // Create response record
-            ComplaintResponse::create([
-                'complaint_id' => $complaint->id,
-                'admin_id' => Auth::id(),
-                'message' => "Status diubah dari {$oldStatus} menjadi {$request->status}" .
-                    ($request->resolution_note ? ". Catatan: {$request->resolution_note}" : ''),
-                'status_changed_to' => $request->status,
-                'is_public' => true,
+                'updated_at' => now(),
             ]);
 
-            // Send notification to user
-            $statusText = [
-                'pending' => 'Menunggu',
-                'in_progress' => 'Sedang Diproses',
-                'resolved' => 'Selesai',
-                'rejected' => 'Ditolak',
-            ];
-
-            Notification::create([
-                'user_id' => $complaint->user_id,
-                'title' => 'Update Status Pengaduan',
-                'message' => "Pengaduan Anda #{$complaint->ticket_number} telah diubah statusnya menjadi: {$statusText[$request->status]}",
-                'type' => 'complaint',
-                'data' => json_encode([
-                    'complaint_id' => $complaint->id,
-                    'ticket_number' => $complaint->ticket_number,
-                    'new_status' => $request->status,
-                    'old_status' => $oldStatus,
-                ]),
-            ]);
-
-            DB::commit();
-
-            return back()->with('success', 'Status pengaduan berhasil diperbarui.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
+        return back()->with('success', 'Status pengaduan berhasil diperbarui.');
     }
 
     /**
-     * Add response to complaint
+     * Export complaints to CSV
      */
-    public function respond(Request $request, $id)
+    public function export(Request $request)
     {
-        $complaint = Complaint::findOrFail($id);
+        $filename = 'complaints_' . date('Y-m-d') . '.csv';
 
-        $request->validate([
-            'message' => 'required|string',
-            'is_public' => 'boolean',
-        ]);
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
 
-        DB::beginTransaction();
+        $complaints = Complaint::with(['user', 'category'])->get();
 
-        try {
-            // Create response
-            ComplaintResponse::create([
-                'complaint_id' => $complaint->id,
-                'admin_id' => Auth::id(),
-                'message' => $request->message,
-                'is_public' => $request->boolean('is_public', true),
-            ]);
+        $callback = function () use ($complaints) {
+            $file = fopen('php://output', 'w');
 
-            // Send notification to user
-            if ($request->boolean('is_public', true)) {
-                Notification::create([
-                    'user_id' => $complaint->user_id,
-                    'title' => 'Respon Pengaduan',
-                    'message' => "Ada respon baru untuk pengaduan Anda #{$complaint->ticket_number}",
-                    'type' => 'complaint',
-                    'data' => json_encode([
-                        'complaint_id' => $complaint->id,
-                        'ticket_number' => $complaint->ticket_number,
-                        'admin_name' => Auth::user()->name,
-                    ]),
+            // Header row
+            fputcsv($file, ['Ticket', 'User', 'Category', 'Title', 'Status', 'Priority', 'Created At']);
+
+            // Data rows
+            foreach ($complaints as $complaint) {
+                fputcsv($file, [
+                    $complaint->ticket_number,
+                    $complaint->user->name,
+                    $complaint->category->name,
+                    $complaint->title,
+                    $complaint->status,
+                    $complaint->priority,
+                    $complaint->created_at->format('Y-m-d H:i:s'),
                 ]);
             }
 
-            DB::commit();
+            fclose($file);
+        };
 
-            return back()->with('success', 'Respon berhasil ditambahkan.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Calculate priority score
-     */
-    private function calculatePriority($complaint)
-    {
-        $score = 0;
-
-        // Category weight
-        $categoryWeights = [
-            'keamanan' => 30,
-            'kesehatan' => 25,
-            'infrastruktur' => 20,
-            'kebersihan' => 15,
-        ];
-
-        $score += $categoryWeights[$complaint->category->slug] ?? 10;
-
-        // Vote score
-        $score += $complaint->upvotes * 2;
-        $score -= $complaint->downvotes;
-
-        // Age factor (older = higher priority)
-        $daysOld = $complaint->created_at->diffInDays(now());
-        $score += min($daysOld * 3, 30);
-
-        // Current priority weight
-        $priorityWeights = [
-            'urgent' => 40,
-            'high' => 25,
-            'normal' => 10,
-            'low' => 0,
-        ];
-
-        $score += $priorityWeights[$complaint->priority] ?? 10;
-
-        return $score;
+        return response()->stream($callback, 200, $headers);
     }
 }

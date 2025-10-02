@@ -6,6 +6,7 @@ use App\Models\Complaint;
 use App\Models\ComplaintCategory;
 use App\Models\ComplaintImage;
 use App\Models\ComplaintVote;
+use App\Models\ComplaintResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,34 +19,16 @@ class ComplaintController extends Controller
      */
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $query = Auth::user()->complaints()->with(['category', 'responses', 'votes']);
 
-        // Get user's complaints
-        $myComplaints = $user->complaints()
-            ->with(['category', 'images'])
-            ->latest()
-            ->paginate(10);
+        // Filter by status
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
 
-        // Get public complaints
-        $publicComplaints = Complaint::public()
-            ->with(['category', 'user', 'images', 'votes'])
-            ->when($request->status, function ($query) use ($request) {
-                return $query->where('status', $request->status);
-            })
-            ->when($request->category, function ($query) use ($request) {
-                return $query->where('category_id', $request->category);
-            })
-            ->latest()
-            ->paginate(20);
+        $complaints = $query->latest()->paginate(10);
 
-        // Get categories for filter
-        $categories = ComplaintCategory::active()->get();
-
-        return view('complaints.index', compact(
-            'myComplaints',
-            'publicComplaints',
-            'categories'
-        ));
+        return view('complaints.index', compact('complaints'));
     }
 
     /**
@@ -53,7 +36,7 @@ class ComplaintController extends Controller
      */
     public function create()
     {
-        $categories = ComplaintCategory::active()
+        $categories = ComplaintCategory::where('is_active', true)
             ->orderBy('name')
             ->get();
 
@@ -67,13 +50,12 @@ class ComplaintController extends Controller
     {
         $request->validate([
             'category_id' => 'required|exists:complaint_categories,id',
-            'title' => 'required|string|max:500',
-            'description' => 'required|string',
-            'location_address' => 'nullable|string',
-            'location_lat' => 'nullable|numeric|between:-90,90',
-            'location_lng' => 'nullable|numeric|between:-180,180',
-            'is_public' => 'boolean',
-            'images' => 'nullable|array|max:3',
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|min:20',
+            'location' => 'required|string|max:500',
+            'priority' => 'required|in:low,medium,high',
+            'is_private' => 'nullable|boolean',
+            'images' => 'nullable|array|max:5',
             'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
@@ -86,53 +68,34 @@ class ComplaintController extends Controller
                 'category_id' => $request->category_id,
                 'title' => $request->title,
                 'description' => $request->description,
-                'location_address' => $request->location_address,
-                'location_lat' => $request->location_lat,
-                'location_lng' => $request->location_lng,
-                'is_public' => $request->boolean('is_public', true),
+                'location' => $request->location,
+                'priority' => $request->priority,
+                'is_private' => $request->boolean('is_private', false),
                 'status' => 'pending',
-                'priority' => 'normal',
             ]);
 
             // Handle image uploads
             if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $index => $image) {
+                foreach ($request->file('images') as $image) {
                     $path = $image->store('complaints/' . $complaint->id, 'public');
 
-                    ComplaintImage::create([
-                        'complaint_id' => $complaint->id,
-                        'image_path' => $path,
-                        'upload_order' => $index + 1,
+                    $complaint->images()->create([
+                        'image_url' => $path,
                     ]);
                 }
             }
 
-            // Log activity
-            Auth::user()->activities()->create([
-                'action' => 'create_complaint',
-                'entity_type' => 'complaint',
-                'entity_id' => $complaint->id,
-                'ip_address' => $request->ip(),
-                'metadata' => json_encode([
-                    'ticket_number' => $complaint->ticket_number,
-                    'category' => $complaint->category->name,
-                ]),
-            ]);
-
-            // Create notification for user
+            // Create notification
             Auth::user()->notifications()->create([
                 'title' => 'Pengaduan Berhasil Dibuat',
-                'message' => 'Pengaduan Anda dengan nomor tiket ' . $complaint->ticket_number . ' telah berhasil dibuat dan akan segera diproses.',
+                'message' => 'Pengaduan Anda dengan nomor tiket ' . $complaint->ticket_number . ' telah berhasil dibuat.',
                 'type' => 'complaint',
-                'data' => json_encode([
-                    'complaint_id' => $complaint->id,
-                    'ticket_number' => $complaint->ticket_number,
-                ]),
+                'action_url' => route('complaints.show', $complaint),
             ]);
 
             DB::commit();
 
-            return redirect()->route('complaints.show', $complaint->ticket_number)
+            return redirect()->route('complaints.show', $complaint)
                 ->with('success', 'Pengaduan berhasil dibuat dengan nomor tiket: ' . $complaint->ticket_number);
         } catch (\Exception $e) {
             DB::rollback();
@@ -143,96 +106,103 @@ class ComplaintController extends Controller
     /**
      * Display complaint details
      */
-    public function show($ticket_number)
+    public function show(Complaint $complaint)
     {
-        $complaint = Complaint::where('ticket_number', $ticket_number)
-            ->with(['category', 'user', 'images', 'responses.admin', 'votes'])
-            ->firstOrFail();
-
         // Check if user can view this complaint
-        if (!$complaint->is_public && $complaint->user_id !== Auth::id() && !Auth::user()->isAdmin()) {
-            abort(403);
+        if ($complaint->is_private && $complaint->user_id !== Auth::id() && !Auth::user()->isAdmin()) {
+            abort(403, 'Anda tidak memiliki akses ke pengaduan ini.');
         }
 
-        // Check if user has voted
-        $userVote = null;
-        if (Auth::check()) {
-            $userVote = $complaint->votes()
-                ->where('user_id', Auth::id())
-                ->first();
-        }
+        $complaint->load(['category', 'user', 'images', 'responses.user', 'votes']);
 
-        return view('complaints.show', compact('complaint', 'userVote'));
+        return view('complaints.show', compact('complaint'));
     }
 
     /**
      * Vote on complaint
      */
-    public function vote(Request $request, $id)
+    public function vote(Request $request, Complaint $complaint)
     {
-        $request->validate([
-            'vote_type' => 'required|in:up,down',
-        ]);
-
-        $complaint = Complaint::findOrFail($id);
-
-        // Check if complaint is public
-        if (!$complaint->is_public) {
-            return response()->json(['error' => 'Cannot vote on private complaints'], 403);
+        // Check if complaint is private
+        if ($complaint->is_private) {
+            return back()->with('error', 'Tidak dapat memberikan dukungan pada pengaduan privat.');
         }
 
         // Check existing vote
-        $existingVote = ComplaintVote::where('complaint_id', $id)
+        $existingVote = $complaint->votes()
             ->where('user_id', Auth::id())
             ->first();
 
         if ($existingVote) {
-            if ($existingVote->vote_type === $request->vote_type) {
-                // Remove vote if same type
-                $existingVote->delete();
-                $message = 'Vote removed';
-            } else {
-                // Update vote type
-                $existingVote->update(['vote_type' => $request->vote_type]);
-                $message = 'Vote updated';
-            }
+            // Remove vote if already voted
+            $existingVote->delete();
+            $message = 'Dukungan dibatalkan';
         } else {
             // Create new vote
-            ComplaintVote::create([
-                'complaint_id' => $id,
+            $complaint->votes()->create([
                 'user_id' => Auth::id(),
-                'vote_type' => $request->vote_type,
+                'is_upvote' => true,
             ]);
-            $message = 'Vote recorded';
+            $message = 'Terima kasih atas dukungan Anda';
         }
 
-        // Recalculate priority (optional)
-        // $this->recalculatePriority($complaint);
-
-        return response()->json([
-            'message' => $message,
-            'upvotes' => $complaint->fresh()->upvotes,
-            'downvotes' => $complaint->fresh()->downvotes,
-        ]);
+        return back()->with('success', $message);
     }
 
     /**
-     * Rate complaint resolution
+     * Add response to complaint
      */
-    public function rate(Request $request, $id)
+    public function addResponse(Request $request, Complaint $complaint)
     {
         $request->validate([
-            'rating' => 'required|integer|between:1,5',
+            'response' => 'required|string|min:10',
         ]);
 
-        $complaint = Complaint::where('user_id', Auth::id())
-            ->where('status', 'resolved')
-            ->findOrFail($id);
+        // Check if user can respond
+        if ($complaint->status == 'completed' || $complaint->status == 'rejected') {
+            return back()->with('error', 'Tidak dapat menambahkan tanggapan pada pengaduan yang sudah selesai.');
+        }
 
-        $complaint->update([
-            'satisfaction_rating' => $request->rating,
+        // Only complaint owner or admin can respond
+        if ($complaint->user_id !== Auth::id() && !Auth::user()->isAdmin()) {
+            abort(403, 'Anda tidak memiliki akses untuk memberikan tanggapan.');
+        }
+
+        $complaint->responses()->create([
+            'user_id' => Auth::id(),
+            'response' => $request->response,
         ]);
 
-        return back()->with('success', 'Terima kasih atas penilaian Anda.');
+        // Create notification for complaint owner if admin responded
+        if (Auth::user()->isAdmin() && $complaint->user_id !== Auth::id()) {
+            $complaint->user->notifications()->create([
+                'title' => 'Tanggapan Admin',
+                'message' => 'Admin telah memberikan tanggapan pada pengaduan Anda: ' . $complaint->ticket_number,
+                'type' => 'complaint_update',
+                'action_url' => route('complaints.show', $complaint),
+            ]);
+        }
+
+        return back()->with('success', 'Tanggapan berhasil ditambahkan.');
+    }
+
+    /**
+     * Track complaint access (for public viewing)
+     */
+    public function track(Request $request)
+    {
+        $request->validate([
+            'ticket_number' => 'required|string',
+        ]);
+
+        $complaint = Complaint::where('ticket_number', $request->ticket_number)
+            ->where('is_private', false)
+            ->first();
+
+        if (!$complaint) {
+            return back()->with('error', 'Nomor tiket tidak ditemukan atau pengaduan bersifat privat.');
+        }
+
+        return redirect()->route('complaints.show', $complaint);
     }
 }

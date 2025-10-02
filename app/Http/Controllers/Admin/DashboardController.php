@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Complaint;
 use App\Models\Application;
 use App\Models\News;
-use App\Models\Complaint;
+use App\Models\Category;
+use App\Models\ComplaintCategory;
 use App\Models\Notification;
-use App\Models\UserActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,168 +21,158 @@ class DashboardController extends Controller
     public function index()
     {
         // Get statistics
-        $stats = [
+        $statistics = [
             'total_users' => User::where('role', 'masyarakat')->count(),
-            'users_by_category' => User::where('role', 'masyarakat')
-                ->select('category', DB::raw('count(*) as total'))
-                ->groupBy('category')
-                ->pluck('total', 'category')
-                ->toArray(),
-            'total_applications' => Application::count(),
-            'active_applications' => Application::where('is_active', true)->count(),
-            'total_news' => News::count(),
-            'published_news' => News::where('is_published', true)->count(),
             'total_complaints' => Complaint::count(),
             'pending_complaints' => Complaint::where('status', 'pending')->count(),
-            'resolved_complaints' => Complaint::where('status', 'resolved')->count(),
+            'process_complaints' => Complaint::where('status', 'process')->count(),
+            'completed_complaints' => Complaint::where('status', 'completed')->count(),
+            'rejected_complaints' => Complaint::where('status', 'rejected')->count(),
+            'active_applications' => Application::where('status', 'active')->count(),
+            'published_news' => News::where('status', 'published')->count(),
         ];
 
-        // Recent activities
-        $recentActivities = UserActivity::with('user')
-            ->latest('created_at')
-            ->limit(10)
-            ->get();
-
-        // Recent complaints
+        // Get recent complaints
         $recentComplaints = Complaint::with(['user', 'category'])
             ->latest()
-            ->limit(5)
+            ->take(10)
             ->get();
 
-        // Popular applications
-        $popularApps = Application::withCount('userFavorites')
-            ->orderBy('user_favorites_count', 'desc')
-            ->limit(5)
-            ->get();
+        // Get user categories distribution
+        $userCategories = User::where('role', 'masyarakat')
+            ->selectRaw('category, count(*) as count')
+            ->groupBy('category')
+            ->pluck('count', 'category');
 
-        // Complaint stats by category
-        $complaintsByCategory = Complaint::join('complaint_categories', 'complaints.category_id', '=', 'complaint_categories.id')
-            ->select('complaint_categories.name', DB::raw('count(complaints.id) as total'))
-            ->groupBy('complaint_categories.id', 'complaint_categories.name')
-            ->orderBy('total', 'desc')
-            ->limit(10)
+        // Get monthly complaint statistics for chart
+        $monthlyComplaints = Complaint::selectRaw('DATE_TRUNC(\'month\', created_at) as month, count(*) as count')
+            ->whereRaw('created_at >= NOW() - INTERVAL \'6 months\'')
+            ->groupBy('month')
+            ->orderBy('month')
             ->get();
 
         return view('admin.dashboard', compact(
-            'stats',
-            'recentActivities',
+            'statistics',
             'recentComplaints',
-            'popularApps',
-            'complaintsByCategory'
+            'userCategories',
+            'monthlyComplaints'
         ));
     }
 
     /**
-     * Display analytics page
+     * Categories management page
+     */
+    public function categories()
+    {
+        $categories = Category::withCount('users')->get();
+        $complaintCategories = ComplaintCategory::withCount('complaints')->get();
+
+        return view('admin.categories.index', compact('categories', 'complaintCategories'));
+    }
+
+    /**
+     * Reports page
+     */
+    public function reports()
+    {
+        // Get date range from request or default to last 30 days
+        $startDate = request('start_date', now()->subDays(30)->format('Y-m-d'));
+        $endDate = request('end_date', now()->format('Y-m-d'));
+
+        // Complaint reports
+        $complaintReport = Complaint::selectRaw('status, count(*) as count')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('status')
+            ->get();
+
+        // User registration report
+        $userReport = User::where('role', 'masyarakat')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE(created_at) as date, count(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // News view report
+        $newsReport = News::withCount(['views' => function ($query) use ($startDate, $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }])
+            ->where('status', 'published')
+            ->orderBy('views_count', 'desc')
+            ->take(10)
+            ->get();
+
+        return view('admin.reports.index', compact(
+            'complaintReport',
+            'userReport',
+            'newsReport',
+            'startDate',
+            'endDate'
+        ));
+    }
+
+    /**
+     * Settings page
+     */
+    public function settings()
+    {
+        // Get application settings (could be from database or config)
+        $settings = [
+            'app_name' => config('app.name'),
+            'app_url' => config('app.url'),
+            'maintenance_mode' => app()->isDownForMaintenance(),
+            'registration_enabled' => true, // You can store this in database
+            'complaint_auto_close_days' => 30, // Days before auto-closing complaints
+        ];
+
+        return view('admin.settings.index', compact('settings'));
+    }
+
+    /**
+     * Admin profile page
+     */
+    public function profile()
+    {
+        $admin = auth()->user();
+
+        return view('admin.profile.index', compact('admin'));
+    }
+
+    /**
+     * Analytics page
      */
     public function analytics()
     {
-        // User registration trend (last 30 days)
-        $userTrend = User::where('role', 'masyarakat')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as total'))
-            ->groupBy('date')
-            ->orderBy('date')
+        // User analytics
+        $userAnalytics = [
+            'total' => User::where('role', 'masyarakat')->count(),
+            'new_today' => User::where('role', 'masyarakat')->whereDate('created_at', today())->count(),
+            'new_this_week' => User::where('role', 'masyarakat')->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'new_this_month' => User::where('role', 'masyarakat')->whereMonth('created_at', now()->month)->count(),
+        ];
+
+        // Complaint analytics
+        $complaintAnalytics = [
+            'total' => Complaint::count(),
+            'avg_resolution_time' => Complaint::where('status', 'completed')
+                ->selectRaw('AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/3600) as avg_hours')
+                ->value('avg_hours'),
+            'satisfaction_rate' => Complaint::where('status', 'completed')
+                ->whereNotNull('satisfaction_rating')
+                ->avg('satisfaction_rating'),
+        ];
+
+        // Popular services
+        $popularServices = Application::where('status', 'active')
+            ->withCount('favorites')
+            ->orderBy('favorites_count', 'desc')
+            ->take(10)
             ->get();
 
-        // Complaint trend (last 30 days)
-        $complaintTrend = Complaint::where('created_at', '>=', now()->subDays(30))
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as total'))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
-
-        // Activity heatmap
-        $activityHeatmap = UserActivity::where('created_at', '>=', now()->subDays(7))
-            ->select(
-                DB::raw('EXTRACT(HOUR FROM created_at) as hour'),
-                DB::raw('EXTRACT(DOW FROM created_at) as day'),
-                DB::raw('count(*) as total')
-            )
-            ->groupBy('hour', 'day')
-            ->get();
-
-        // News performance
-        $newsPerformance = News::withCount('views')
-            ->published()
-            ->orderBy('views_count', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Response time analysis
-        $responseTime = DB::table('complaints')
-            ->select(
-                DB::raw('AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600) as avg_hours'),
-                DB::raw('MIN(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600) as min_hours'),
-                DB::raw('MAX(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600) as max_hours')
-            )
-            ->where('status', 'resolved')
-            ->whereNotNull('resolved_at')
-            ->first();
-
-        return view('admin.analytics', compact(
-            'userTrend',
-            'complaintTrend',
-            'activityHeatmap',
-            'newsPerformance',
-            'responseTime'
+        return view('admin.analytics.index', compact(
+            'userAnalytics',
+            'complaintAnalytics',
+            'popularServices'
         ));
-    }
-
-    /**
-     * Show broadcast notification form
-     */
-    public function broadcastForm()
-    {
-        $userCategories = ['pelajar', 'pegawai', 'pencari_kerja', 'pengusaha'];
-        return view('admin.notifications.broadcast', compact('userCategories'));
-    }
-
-    /**
-     * Send broadcast notification
-     */
-    public function sendBroadcast(Request $request)
-    {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'message' => 'required|string',
-            'type' => 'required|in:info,warning,success,danger',
-            'target' => 'required|in:all,category',
-            'category' => 'required_if:target,category|in:pelajar,pegawai,pencari_kerja,pengusaha',
-        ]);
-
-        $query = User::where('role', 'masyarakat');
-
-        if ($request->target === 'category') {
-            $query->where('category', $request->category);
-        }
-
-        $users = $query->get();
-        $notificationData = [];
-        $now = now();
-
-        foreach ($users as $user) {
-            $notificationData[] = [
-                'user_id' => $user->id,
-                'title' => $request->title,
-                'message' => $request->message,
-                'type' => $request->type,
-                'data' => json_encode([
-                    'broadcast' => true,
-                    'sent_by' => auth()->user()->name,
-                    'sent_at' => $now,
-                ]),
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        // Insert in chunks for better performance
-        foreach (array_chunk($notificationData, 500) as $chunk) {
-            Notification::insert($chunk);
-        }
-
-        return redirect()->route('admin.dashboard')
-            ->with('success', 'Notifikasi berhasil dikirim ke ' . count($users) . ' pengguna.');
     }
 }
