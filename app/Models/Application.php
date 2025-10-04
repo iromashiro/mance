@@ -54,4 +54,11 @@ class Application extends Model
     {
         return $this->belongsToMany(User::class, 'user_favorites');
     }
+    /**
+     * Alias relationship for favorites (UserFavorite items)
+     */
+    public function favorites()
+    {
+        return $this->hasMany(UserFavorite::class);
+    }
 }

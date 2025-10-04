@@ -68,9 +68,9 @@
                 <option value="">Pilih kategori</option>
                 <option value="pelajar" {{ old('category') == 'pelajar' ? 'selected' : '' }}>Pelajar</option>
                 <option value="pegawai" {{ old('category') == 'pegawai' ? 'selected' : '' }}>Pegawai</option>
-                <option value="pencaker" {{ old('category') == 'pencaker' ? 'selected' : '' }}>Pencari Kerja</option>
-                <option value="wirausaha" {{ old('category') == 'wirausaha' ? 'selected' : '' }}>Wirausaha</option>
-                <option value="umum" {{ old('category') == 'umum' ? 'selected' : '' }}>Umum</option>
+                <option value="pencari_kerja" {{ old('category') == 'pencari_kerja' ? 'selected' : '' }}>Pencari Kerja
+                </option>
+                <option value="pengusaha" {{ old('category') == 'pengusaha' ? 'selected' : '' }}>Pengusaha</option>
             </select>
             @error('category')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

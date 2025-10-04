@@ -115,10 +115,10 @@
                                         Pelajar</option>
                                     <option value="pegawai" {{ Auth::user()->category == 'pegawai' ? 'selected' : '' }}>
                                         Pegawai</option>
-                                    <option value="pencaker"
-                                        {{ Auth::user()->category == 'pencaker' ? 'selected' : '' }}>Pencari Kerja
+                                    <option value="pencari_kerja"
+                                        {{ Auth::user()->category == 'pencari_kerja' ? 'selected' : '' }}>Pencari Kerja
                                     </option>
-                                    <option value="wirausaha"
+                                    <option value="pengusaha"
                                         {{ Auth::user()->category == 'wirausaha' ? 'selected' : '' }}>Wirausaha</option>
                                     <option value="umum" {{ Auth::user()->category == 'umum' ? 'selected' : '' }}>Umum
                                     </option>

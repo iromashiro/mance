@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $totalComplaints = $user->complaints()->count();
         $activeComplaints = $user->complaints()->whereIn('status', ['pending', 'process'])->count();
         $completedComplaints = $user->complaints()->where('status', 'completed')->count();
-        $unreadNotifications = $user->notifications()->where('is_read', false)->count();
+        $unreadNotifications = $user->notifications()->whereNull('read_at')->count();
 
         // Get recent complaints
         $recentComplaints = $user->complaints()
@@ -32,7 +32,7 @@ class DashboardController extends Controller
             ->get();
 
         // Get latest news
-        $latestNews = News::where('status', 'published')
+        $latestNews = News::published()
             ->latest('published_at')
             ->take(5)
             ->get();
@@ -46,7 +46,7 @@ class DashboardController extends Controller
             ->pluck('application');
 
         // Get personalized app recommendations based on user category
-        $recommendedApps = Application::where('status', 'active')
+        $recommendedApps = Application::where('is_active', true)
             ->whereHas('categories', function ($query) use ($user) {
                 $query->where('slug', $user->category);
             })

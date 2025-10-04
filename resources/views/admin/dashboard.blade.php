@@ -85,7 +85,7 @@
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 truncate">Layanan Aktif</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                            {{ \App\Models\Application::where('status', 'active')->count() }}</dd>
+                            {{ \App\Models\Application::where('is_active', true)->count() }}</dd>
                     </dl>
                 </div>
             </div>
@@ -117,7 +117,7 @@
                     <dl>
                         <dt class="text-sm font-medium text-gray-500 truncate">Berita Dipublikasi</dt>
                         <dd class="text-lg font-semibold text-gray-900">
-                            {{ \App\Models\News::where('status', 'published')->count() }}</dd>
+                            {{ \App\Models\News::published()->count() }}</dd>
                     </dl>
                 </div>
             </div>
@@ -156,8 +156,8 @@
                 <span class="text-sm font-medium text-gray-500 w-24">Diproses</span>
                 <div class="flex-1 bg-gray-200 rounded-full h-6 ml-2">
                     <div class="bg-yellow-500 h-6 rounded-full text-xs text-white flex items-center justify-center"
-                        style="width: {{ $complaintStats->sum() > 0 ? ($complaintStats->get('process', 0) / $complaintStats->sum() * 100) : 0 }}%">
-                        {{ $complaintStats->get('process', 0) }}
+                        style="width: {{ $complaintStats->sum() > 0 ? ($complaintStats->get('in_progress', 0) / $complaintStats->sum() * 100) : 0 }}%">
+                        {{ $complaintStats->get('in_progress', 0) }}
                     </div>
                 </div>
             </div>
@@ -165,8 +165,8 @@
                 <span class="text-sm font-medium text-gray-500 w-24">Selesai</span>
                 <div class="flex-1 bg-gray-200 rounded-full h-6 ml-2">
                     <div class="bg-green-500 h-6 rounded-full text-xs text-white flex items-center justify-center"
-                        style="width: {{ $complaintStats->sum() > 0 ? ($complaintStats->get('completed', 0) / $complaintStats->sum() * 100) : 0 }}%">
-                        {{ $complaintStats->get('completed', 0) }}
+                        style="width: {{ $complaintStats->sum() > 0 ? ($complaintStats->get('resolved', 0) / $complaintStats->sum() * 100) : 0 }}%">
+                        {{ $complaintStats->get('resolved', 0) }}
                     </div>
                 </div>
             </div>
@@ -192,7 +192,7 @@
         ->pluck('count', 'category');
         @endphp
         <div class="space-y-3">
-            @foreach(['pelajar', 'pegawai', 'pencaker', 'wirausaha', 'umum'] as $category)
+            @foreach(['pelajar', 'pegawai', 'pencari_kerja', 'pengusaha'] as $category)
             <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-700 capitalize">{{ $category }}</span>
                 <span class="text-sm text-gray-500">{{ $userCategories->get($category, 0) }} pengguna</span>

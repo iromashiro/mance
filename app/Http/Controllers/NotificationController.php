@@ -18,9 +18,9 @@ class NotificationController extends Controller
         // Filter by read status
         if ($request->has('status')) {
             if ($request->status === 'unread') {
-                $query->where('is_read', false);
+                $query->whereNull('read_at');
             } elseif ($request->status === 'read') {
-                $query->where('is_read', true);
+                $query->whereNotNull('read_at');
             }
         }
 
@@ -40,7 +40,7 @@ class NotificationController extends Controller
         }
 
         // Mark as read
-        $notification->update(['is_read' => true]);
+        $notification->update(['read_at' => now()]);
 
         // Redirect to action URL if exists
         if ($notification->action_url) {
@@ -56,8 +56,8 @@ class NotificationController extends Controller
     public function markAllAsRead()
     {
         Auth::user()->notifications()
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
 
         return back()->with('success', 'Semua notifikasi telah ditandai sebagai dibaca.');
     }
@@ -83,7 +83,7 @@ class NotificationController extends Controller
     public function clearRead()
     {
         Auth::user()->notifications()
-            ->where('is_read', true)
+            ->whereNotNull('read_at')
             ->delete();
 
         return back()->with('success', 'Notifikasi yang sudah dibaca berhasil dihapus.');

@@ -14,7 +14,7 @@ class NewsController extends Controller
      */
     public function index(Request $request)
     {
-        $query = News::where('status', 'published')
+        $query = News::published()
             ->with('author');
 
         // Search
@@ -27,13 +27,12 @@ class NewsController extends Controller
             });
         }
 
-        // Category filter (if news has categories)
+        // Category filter
         if ($request->has('category') && $request->category) {
             $query->where('category', $request->category);
         }
 
-        $news = $query->latest('published_at')
-            ->paginate(9);
+        $news = $query->latest('published_at')->paginate(9);
 
         return view('news.index', compact('news'));
     }
@@ -43,8 +42,11 @@ class NewsController extends Controller
      */
     public function show(News $news)
     {
-        // Check if news is published
-        if ($news->status !== 'published' && (!Auth::check() || !Auth::user()->isAdmin())) {
+        // Allow unpublished only for admin; otherwise must be published (is_published + published_at <= now)
+        $isPublished = $news->is_published && ! is_null($news->published_at) && $news->published_at->lte(now());
+        $isAdmin = Auth::check() && Auth::user()->isAdmin();
+
+        if (! $isPublished && ! $isAdmin) {
             abort(404);
         }
 
@@ -52,7 +54,7 @@ class NewsController extends Controller
         $this->trackView($news);
 
         // Get related news
-        $relatedNews = News::where('status', 'published')
+        $relatedNews = News::published()
             ->where('id', '!=', $news->id)
             ->latest('published_at')
             ->take(3)
@@ -66,34 +68,22 @@ class NewsController extends Controller
      */
     public function trackView(News $news)
     {
-        // Check if user already viewed this news today
-        if (Auth::check()) {
-            $existingView = NewsView::where('news_id', $news->id)
-                ->where('user_id', Auth::id())
-                ->whereDate('created_at', today())
-                ->first();
+        // Only track for authenticated users (routes are already behind auth)
+        if (! Auth::check()) {
+            return response()->json(['success' => true]);
+        }
 
-            if (!$existingView) {
-                NewsView::create([
-                    'news_id' => $news->id,
-                    'user_id' => Auth::id(),
-                    'ip_address' => request()->ip(),
-                ]);
-            }
-        } else {
-            // Track by IP for guests
-            $existingView = NewsView::where('news_id', $news->id)
-                ->where('ip_address', request()->ip())
-                ->whereDate('created_at', today())
-                ->first();
+        $existingView = NewsView::where('news_id', $news->id)
+            ->where('user_id', Auth::id())
+            ->whereDate('viewed_at', today())
+            ->first();
 
-            if (!$existingView) {
-                NewsView::create([
-                    'news_id' => $news->id,
-                    'user_id' => null,
-                    'ip_address' => request()->ip(),
-                ]);
-            }
+        if (! $existingView) {
+            NewsView::create([
+                'news_id' => $news->id,
+                'user_id' => Auth::id(),
+                'viewed_at' => now(),
+            ]);
         }
 
         return response()->json(['success' => true]);

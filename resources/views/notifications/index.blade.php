@@ -8,7 +8,7 @@
     <div class="mb-6">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold text-gray-900">Notifikasi</h1>
-            @if(Auth::user()->notifications()->where('is_read', false)->count() > 0)
+            @if(Auth::user()->notifications()->whereNull('read_at')->count() > 0)
             <form action="{{ route('notifications.read-all') }}" method="POST">
                 @csrf
                 <button type="submit"
@@ -31,7 +31,7 @@
                 <div>
                     <p class="text-sm font-medium text-gray-600">Belum Dibaca</p>
                     <p class="text-2xl font-semibold text-gray-900">
-                        {{ Auth::user()->notifications()->where('is_read', false)->count() }}
+                        {{ Auth::user()->notifications()->whereNull('read_at')->count() }}
                     </p>
                 </div>
                 <div class="bg-blue-100 rounded-full p-3">
@@ -68,7 +68,7 @@
         @if($notifications->count() > 0)
         <ul class="divide-y divide-gray-200">
             @foreach($notifications as $notification)
-            <li class="{{ !$notification->is_read ? 'bg-blue-50' : '' }}">
+            <li class="{{ !$notification->read_at ? 'bg-blue-50' : '' }}">
                 <a href="{{ route('notifications.read', $notification) }}"
                     class="block hover:bg-gray-50 px-4 py-4 sm:px-6">
                     <div class="flex items-start">
@@ -89,8 +89,8 @@
                             break;
                             case 'news':
                             $iconClass = 'text-blue-500';
-                            $icon = 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0
-                            002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z';
+                            $icon = 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V9a2 2 0
+                            00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z';
                             break;
                             case 'service':
                             $iconClass = 'text-purple-500';
@@ -110,7 +110,7 @@
                                 <p class="text-sm font-medium text-gray-900">
                                     {{ $notification->title }}
                                 </p>
-                                @if(!$notification->is_read)
+                                @if(!$notification->read_at)
                                 <span
                                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                     Baru

@@ -20,8 +20,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
         'category',
         'role',
+        'profile_photo_path',
+        'banned_at',
     ];
 
     /**
@@ -44,6 +47,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'banned_at' => 'datetime',
         ];
     }
 

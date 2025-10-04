@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-gray-50">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 
 <head>
     <meta charset="utf-8">
@@ -10,7 +10,7 @@
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1e40af">
+    <meta name="theme-color" content="#7950f2">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18,102 +18,260 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
 
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    @vite('resources/js/app.js')
+
+    <!-- Hide Alpine.js x-cloak -->
+    <style>
+        [x-cloak] {
+            display: none !important
+        }
+    </style>
 
     <!-- Additional Styles -->
     @stack('styles')
 </head>
 
-<body class="h-full">
-    <div x-data="{ sidebarOpen: false, notificationOpen: false }" class="min-h-screen bg-gray-50">
-        <!-- Mobile sidebar -->
+<body class="h-full font-sans bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+    <div x-data="{ sidebarOpen: false, showNotifications: false, showProfile: false }" class="min-h-screen">
+
+        <!-- Mobile Sidebar Overlay -->
         <div x-show="sidebarOpen" x-cloak class="relative z-50 lg:hidden">
             <div x-show="sidebarOpen" x-transition:enter="transition-opacity ease-linear duration-300"
                 x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                 x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-900/80" @click="sidebarOpen = false">
+                x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm"
+                @click="sidebarOpen = false">
             </div>
         </div>
 
-        <!-- Header -->
-        <header class="sticky top-0 z-40 bg-white border-b border-gray-200">
+        <!-- Modern Header with Glassmorphism -->
+        <header class="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm">
             <div class="px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
+                    <!-- Left Section -->
                     <div class="flex items-center">
+                        <!-- Mobile Menu Button -->
                         <button @click="sidebarOpen = true"
-                            class="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500">
+                            class="lg:hidden p-2 rounded-xl text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-all">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M4 6h16M4 12h16M4 18h16"></path>
                             </svg>
                         </button>
+
+                        <!-- Logo -->
                         <div class="flex-shrink-0 flex items-center">
-                            <h1 class="text-xl font-bold text-primary-800">MANCE</h1>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl blur-lg opacity-70 animate-pulse-slow">
+                                </div>
+                                <h1
+                                    class="relative text-2xl font-heading font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent px-3 py-1">
+                                    MANCE
+                                </h1>
+                            </div>
                         </div>
+
+                        <!-- Desktop Navigation -->
+                        <nav class="hidden lg:flex lg:ml-10 space-x-1">
+                            <a href="{{ route('dashboard') }}"
+                                class="@if(request()->routeIs('dashboard')) nav-item-active @else nav-item @endif">
+                                Dashboard
+                            </a>
+                            <a href="{{ route('applications.index') }}"
+                                class="@if(request()->routeIs('applications.*')) nav-item-active @else nav-item @endif">
+                                Layanan
+                            </a>
+                            <a href="{{ route('complaints.index') }}"
+                                class="@if(request()->routeIs('complaints.*')) nav-item-active @else nav-item @endif">
+                                Pengaduan
+                            </a>
+                            <a href="{{ route('news.index') }}"
+                                class="@if(request()->routeIs('news.*')) nav-item-active @else nav-item @endif">
+                                Berita
+                            </a>
+                        </nav>
                     </div>
 
-                    <div class="flex items-center space-x-4">
+                    <!-- Right Section -->
+                    <div class="flex items-center space-x-3">
                         <!-- Notifications -->
-                        <div class="relative" x-data="{ open: false }">
-                            <button @click="open = !open" class="relative p-2 text-gray-400 hover:text-gray-500">
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="relative">
+                            <button @click="showNotifications = !showNotifications"
+                                class="relative p-2 rounded-xl text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-all group">
+                                <svg class="h-6 w-6 group-hover:animate-wiggle" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
                                     </path>
                                 </svg>
-                                @if(auth()->user()->notifications()->unread()->count() > 0)
+                                @if(auth()->user()->unreadNotifications()->count() > 0)
                                 <span
-                                    class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
+                                    class="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-gradient-to-r from-accent-500 to-pink-500 ring-2 ring-white animate-pulse"></span>
                                 @endif
                             </button>
 
-                            <!-- Dropdown -->
-                            <div x-show="open" @click.away="open = false" x-transition
-                                class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                                <div class="py-1">
-                                    <div class="px-4 py-2 border-b">
-                                        <p class="text-sm font-medium text-gray-900">Notifikasi</p>
+                            <!-- Notifications Dropdown -->
+                            <div x-show="showNotifications" @click.away="showNotifications = false"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0 scale-95"
+                                x-transition:enter-end="opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100 scale-100"
+                                x-transition:leave-end="opacity-0 scale-95"
+                                class="origin-top-right absolute right-0 mt-2 w-96 rounded-2xl shadow-2xl bg-white/95 backdrop-blur-xl ring-1 ring-black/5 animate-slide-up">
+                                <div class="p-4 border-b border-gray-100">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="text-lg font-semibold text-gray-900">Notifikasi</h3>
+                                        @if(auth()->user()->unreadNotifications()->count() > 0)
+                                        <span class="badge badge-primary">
+                                            {{ auth()->user()->unreadNotifications()->count() }} Baru
+                                        </span>
+                                        @endif
                                     </div>
-                                    @forelse(auth()->user()->notifications()->unread()->limit(5)->get() as
-                                    $notification)
+                                </div>
+
+                                <div class="max-h-96 overflow-y-auto">
+                                    @forelse(auth()->user()->unreadNotifications()->limit(5)->get() as $notification)
                                     <a href="{{ route('notifications.index') }}"
-                                        class="block px-4 py-2 hover:bg-gray-50">
-                                        <p class="text-sm font-medium text-gray-900">{{ $notification->title }}</p>
-                                        <p class="text-xs text-gray-500">
-                                            {{ $notification->created_at->diffForHumans() }}</p>
+                                        class="block px-4 py-3 hover:bg-gradient-to-r hover:from-primary-50 hover:to-accent-50 transition-all group">
+                                        <div class="flex items-start space-x-3">
+                                            <div class="flex-shrink-0">
+                                                <div
+                                                    class="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center">
+                                                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                        </path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p
+                                                    class="text-sm font-medium text-gray-900 group-hover:text-primary-700">
+                                                    {{ data_get($notification->data, 'title', 'Notifikasi') }}
+                                                </p>
+                                                <p class="text-xs text-gray-500 mt-1">
+                                                    {{ $notification->created_at->diffForHumans() }}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </a>
                                     @empty
-                                    <p class="px-4 py-2 text-sm text-gray-500">Tidak ada notifikasi baru</p>
+                                    <div class="px-4 py-8 text-center">
+                                        <div
+                                            class="inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-3">
+                                            <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                                                </path>
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-gray-500">Tidak ada notifikasi baru</p>
+                                    </div>
                                     @endforelse
                                 </div>
+
+                                @if(auth()->user()->unreadNotifications()->count() > 5)
+                                <div class="p-3 border-t border-gray-100">
+                                    <a href="{{ route('notifications.index') }}"
+                                        class="btn btn-ghost w-full justify-center">
+                                        Lihat Semua Notifikasi
+                                    </a>
+                                </div>
+                                @endif
                             </div>
                         </div>
 
-                        <!-- User dropdown -->
-                        <div class="relative" x-data="{ open: false }">
-                            <button @click="open = !open" class="flex items-center text-sm rounded-full">
-                                <img class="h-8 w-8 rounded-full bg-gray-300"
-                                    src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=1e40af&color=fff"
-                                    alt="">
+                        <!-- User Profile -->
+                        <div class="relative">
+                            <button @click="showProfile = !showProfile"
+                                class="flex items-center p-1.5 rounded-xl hover:bg-primary-50 transition-all group">
+                                <div class="relative">
+                                    <img class="h-9 w-9 rounded-xl ring-2 ring-white shadow-md group-hover:ring-primary-200 transition-all"
+                                        src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=7950f2&color=fff&bold=true"
+                                        alt="{{ auth()->user()->name }}">
+                                    <div
+                                        class="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-success-500 border-2 border-white rounded-full">
+                                    </div>
+                                </div>
+                                <svg class="ml-2 h-4 w-4 text-gray-400 group-hover:text-primary-600 transition-colors"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
                             </button>
 
-                            <div x-show="open" @click.away="open = false" x-transition
-                                class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                                <div class="py-1">
-                                    <div class="px-4 py-2 border-b">
-                                        <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
-                                        <p class="text-xs text-gray-500">{{ auth()->user()->email }}</p>
+                            <!-- Profile Dropdown -->
+                            <div x-show="showProfile" @click.away="showProfile = false"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0 scale-95"
+                                x-transition:enter-end="opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-150"
+                                x-transition:leave-start="opacity-100 scale-100"
+                                x-transition:leave-end="opacity-0 scale-95"
+                                class="origin-top-right absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl bg-white/95 backdrop-blur-xl ring-1 ring-black/5 animate-slide-up overflow-hidden">
+
+                                <!-- Profile Header -->
+                                <div class="bg-gradient-to-br from-primary-500 to-accent-500 p-4">
+                                    <div class="flex items-center space-x-3">
+                                        <img class="h-12 w-12 rounded-xl ring-2 ring-white/50"
+                                            src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=ffffff&color=7950f2&bold=true"
+                                            alt="{{ auth()->user()->name }}">
+                                        <div>
+                                            <p class="text-white font-semibold">{{ auth()->user()->name }}</p>
+                                            <p class="text-white/80 text-xs">{{ auth()->user()->email }}</p>
+                                        </div>
                                     </div>
+                                </div>
+
+                                <div class="p-2">
                                     <a href="{{ route('profile.index') }}"
-                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profil</a>
+                                        class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-primary-50 rounded-xl transition-all group">
+                                        <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-primary-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                            </path>
+                                        </svg>
+                                        Profil Saya
+                                    </a>
+
+                                    @if(auth()->user()->role === 'admin')
+                                    <a href="{{ route('admin.dashboard') }}"
+                                        class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-primary-50 rounded-xl transition-all group">
+                                        <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-primary-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                            </path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        </svg>
+                                        Admin Panel
+                                    </a>
+                                    @endif
+
+                                    <div class="border-t border-gray-100 my-2"></div>
+
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
                                         <button type="submit"
-                                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            class="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-red-50 rounded-xl transition-all group">
+                                            <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-red-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                                </path>
+                                            </svg>
                                             Logout
                                         </button>
                                     </form>
@@ -125,73 +283,163 @@
             </div>
         </header>
 
-        <!-- Main content -->
-        <main>
+        <!-- Main Content -->
+        <main class="pb-20 lg:pb-0">
             @yield('content')
         </main>
 
-        <!-- Bottom Navigation (Mobile) -->
-        <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <!-- Modern Bottom Navigation (Mobile) -->
+        <nav
+            class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 z-50 shadow-lg">
             <div class="grid grid-cols-5 h-16">
-                <a href="{{ route('dashboard') }}"
-                    class="flex flex-col items-center justify-center text-xs {{ request()->routeIs('dashboard') ? 'text-primary-600' : 'text-gray-500' }}">
-                    <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
-                        </path>
-                    </svg>
-                    Home
+                <a href="{{ route('dashboard') }}" class="group flex flex-col items-center justify-center relative">
+                    <div
+                        class="@if(request()->routeIs('dashboard')) text-primary-600 @else text-gray-500 @endif transition-all">
+                        <svg class="h-5 w-5 mb-0.5 group-hover:scale-110 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                            </path>
+                        </svg>
+                        <span class="text-xs font-medium">Home</span>
+                    </div>
+                    @if(request()->routeIs('dashboard'))
+                    <div
+                        class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full">
+                    </div>
+                    @endif
                 </a>
+
                 <a href="{{ route('applications.index') }}"
-                    class="flex flex-col items-center justify-center text-xs {{ request()->routeIs('applications.*') ? 'text-primary-600' : 'text-gray-500' }}">
-                    <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                        </path>
-                    </svg>
-                    Layanan
+                    class="group flex flex-col items-center justify-center relative">
+                    <div
+                        class="@if(request()->routeIs('applications.*')) text-primary-600 @else text-gray-500 @endif transition-all">
+                        <svg class="h-5 w-5 mb-0.5 group-hover:scale-110 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                            </path>
+                        </svg>
+                        <span class="text-xs font-medium">Layanan</span>
+                    </div>
+                    @if(request()->routeIs('applications.*'))
+                    <div
+                        class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full">
+                    </div>
+                    @endif
                 </a>
-                <a href="{{ route('complaints.index') }}"
-                    class="flex flex-col items-center justify-center text-xs {{ request()->routeIs('complaints.*') ? 'text-primary-600' : 'text-gray-500' }}">
-                    <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Lapor
+
+                <a href="{{ route('complaints.create') }}"
+                    class="group flex flex-col items-center justify-center relative">
+                    <div
+                        class="bg-gradient-to-r from-primary-500 to-accent-500 p-3 rounded-xl shadow-lg transform group-hover:scale-110 transition-all -mt-8">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-medium text-gray-600 mt-1">Lapor</span>
                 </a>
-                <a href="{{ route('news.index') }}"
-                    class="flex flex-col items-center justify-center text-xs {{ request()->routeIs('news.*') ? 'text-primary-600' : 'text-gray-500' }}">
-                    <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15">
-                        </path>
-                    </svg>
-                    Berita
+
+                <a href="{{ route('news.index') }}" class="group flex flex-col items-center justify-center relative">
+                    <div
+                        class="@if(request()->routeIs('news.*')) text-primary-600 @else text-gray-500 @endif transition-all">
+                        <svg class="h-5 w-5 mb-0.5 group-hover:scale-110 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15">
+                            </path>
+                        </svg>
+                        <span class="text-xs font-medium">Berita</span>
+                    </div>
+                    @if(request()->routeIs('news.*'))
+                    <div
+                        class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full">
+                    </div>
+                    @endif
                 </a>
-                <a href="{{ route('profile.index') }}"
-                    class="flex flex-col items-center justify-center text-xs {{ request()->routeIs('profile.*') ? 'text-primary-600' : 'text-gray-500' }}">
-                    <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                    Profil
+
+                <a href="{{ route('profile.index') }}" class="group flex flex-col items-center justify-center relative">
+                    <div
+                        class="@if(request()->routeIs('profile.*')) text-primary-600 @else text-gray-500 @endif transition-all">
+                        <svg class="h-5 w-5 mb-0.5 group-hover:scale-110 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        <span class="text-xs font-medium">Profil</span>
+                    </div>
+                    @if(request()->routeIs('profile.*'))
+                    <div
+                        class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full">
+                    </div>
+                    @endif
                 </a>
             </div>
         </nav>
     </div>
 
-    <!-- Success/Error Messages -->
+    <!-- Modern Toast Notifications -->
     @if(session('success'))
-    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
-        class="fixed top-20 right-4 z-50 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-        {{ session('success') }}
+    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform translate-y-4"
+        x-transition:enter-end="opacity-100 transform translate-y-0"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0" class="fixed bottom-24 lg:bottom-8 right-4 z-50 max-w-sm">
+        <div
+            class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-success-100 p-4 flex items-start space-x-3">
+            <div class="flex-shrink-0">
+                <div
+                    class="h-10 w-10 rounded-full bg-gradient-to-br from-success-400 to-teal-400 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">Berhasil!</p>
+                <p class="text-sm text-gray-500 mt-1">{{ session('success') }}</p>
+            </div>
+            <button @click="show = false" class="text-gray-400 hover:text-gray-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
     </div>
     @endif
 
     @if(session('error'))
-    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
-        class="fixed top-20 right-4 z-50 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-        {{ session('error') }}
+    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform translate-y-4"
+        x-transition:enter-end="opacity-100 transform translate-y-0"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0" class="fixed bottom-24 lg:bottom-8 right-4 z-50 max-w-sm">
+        <div
+            class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-red-100 p-4 flex items-start space-x-3">
+            <div class="flex-shrink-0">
+                <div
+                    class="h-10 w-10 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">Error!</p>
+                <p class="text-sm text-gray-500 mt-1">{{ session('error') }}</p>
+            </div>
+            <button @click="show = false" class="text-gray-400 hover:text-gray-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
     </div>
     @endif
 

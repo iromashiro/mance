@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppCategory;
 use App\Models\Application;
 use App\Models\Category;
-use App\Models\AppCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -20,7 +21,7 @@ class ApplicationController extends Controller
         $query = Application::with('categories');
 
         // Search filter
-        if ($request->has('search') && $request->search) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -28,12 +29,12 @@ class ApplicationController extends Controller
             });
         }
 
-        // Status filter
-        if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
+        // Status filter (map ?status=active|inactive to is_active boolean)
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
         }
 
-        $applications = $query->withCount('favorites')
+        $applications = $query->withCount('userFavorites')
             ->latest()
             ->paginate(20);
 
@@ -60,23 +61,24 @@ class ApplicationController extends Controller
             'description' => 'required|string',
             'url' => 'required|url',
             'icon' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:1024',
-            'status' => 'required|in:active,inactive',
+            'is_active' => 'nullable|boolean',
             'categories' => 'array',
             'categories.*' => 'exists:categories,id',
         ]);
 
-        $data = $request->only(['name', 'description', 'url', 'status']);
+        $data = $request->only(['name', 'description', 'url']);
+        $data['is_active'] = $request->boolean('is_active', true);
 
         // Handle icon upload
         if ($request->hasFile('icon')) {
             $path = $request->file('icon')->store('applications/icons', 'public');
-            $data['icon_url'] = $path;
+            $data['icon_path'] = $path;
         }
 
         $application = Application::create($data);
 
         // Attach categories
-        if ($request->has('categories')) {
+        if ($request->filled('categories')) {
             foreach ($request->categories as $categoryId) {
                 AppCategory::create([
                     'application_id' => $application->id,
@@ -94,11 +96,11 @@ class ApplicationController extends Controller
      */
     public function show(Application $application)
     {
-        $application->load(['categories', 'favorites.user']);
+        $application->load(['categories', 'userFavorites.user']);
 
-        // Get usage statistics
+        // Get usage statistics (safe default if columns absent)
         $stats = [
-            'total_favorites' => $application->favorites()->count(),
+            'total_favorites' => $application->userFavorites()->count(),
             'views_count' => $application->views_count ?? 0,
             'clicks_count' => $application->clicks_count ?? 0,
         ];
@@ -127,22 +129,23 @@ class ApplicationController extends Controller
             'description' => 'required|string',
             'url' => 'required|url',
             'icon' => 'nullable|image|mimes:jpg,jpeg,png,svg|max:1024',
-            'status' => 'required|in:active,inactive',
+            'is_active' => 'nullable|boolean',
             'categories' => 'array',
             'categories.*' => 'exists:categories,id',
         ]);
 
-        $data = $request->only(['name', 'description', 'url', 'status']);
+        $data = $request->only(['name', 'description', 'url']);
+        $data['is_active'] = $request->boolean('is_active', $application->is_active);
 
         // Handle icon upload
         if ($request->hasFile('icon')) {
             // Delete old icon
-            if ($application->icon_url) {
-                Storage::disk('public')->delete($application->icon_url);
+            if ($application->icon_path) {
+                Storage::disk('public')->delete($application->icon_path);
             }
 
             $path = $request->file('icon')->store('applications/icons', 'public');
-            $data['icon_url'] = $path;
+            $data['icon_path'] = $path;
         }
 
         $application->update($data);
@@ -171,8 +174,8 @@ class ApplicationController extends Controller
     public function destroy(Application $application)
     {
         // Delete icon if exists
-        if ($application->icon_url) {
-            Storage::disk('public')->delete($application->icon_url);
+        if ($application->icon_path) {
+            Storage::disk('public')->delete($application->icon_path);
         }
 
         // Delete related records
@@ -185,25 +188,31 @@ class ApplicationController extends Controller
     }
 
     /**
-     * Toggle application status
+     * Toggle application active flag
      */
     public function toggleStatus(Application $application)
     {
-        $newStatus = $application->status === 'active' ? 'inactive' : 'active';
-        $application->update(['status' => $newStatus]);
+        $application->update(['is_active' => ! $application->is_active]);
 
         return back()->with('success', 'Status aplikasi berhasil diubah.');
     }
 
     /**
-     * Reset application statistics
+     * Reset application statistics (guard columns)
      */
     public function resetStats(Application $application)
     {
-        $application->update([
-            'views_count' => 0,
-            'clicks_count' => 0,
-        ]);
+        $toUpdate = [];
+        if (Schema::hasColumn('applications', 'views_count')) {
+            $toUpdate['views_count'] = 0;
+        }
+        if (Schema::hasColumn('applications', 'clicks_count')) {
+            $toUpdate['clicks_count'] = 0;
+        }
+
+        if (! empty($toUpdate)) {
+            $application->update($toUpdate);
+        }
 
         return back()->with('success', 'Statistik aplikasi berhasil direset.');
     }

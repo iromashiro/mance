@@ -22,38 +22,27 @@ class LoginController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
-            ]);
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
+
+            $user = Auth::user();
+
+            // Check if user is admin
+            if ($user->role === 'super_admin') {
+                return redirect()->intended('/admin/dashboard');
+            }
+
+            return redirect()->intended('/dashboard');
         }
 
-        $request->session()->regenerate();
-
-        // Log user activity
-        if (Auth::user()) {
-            Auth::user()->activities()->create([
-                'action' => 'login',
-                'entity_type' => 'auth',
-                'ip_address' => $request->ip(),
-                'metadata' => json_encode([
-                    'user_agent' => $request->userAgent(),
-                    'timestamp' => now(),
-                ]),
-            ]);
-        }
-
-        // Redirect based on role
-        if (Auth::user()->isAdmin()) {
-            return redirect()->intended('/admin/dashboard');
-        }
-
-        return redirect()->intended('/dashboard');
+        throw ValidationException::withMessages([
+            'email' => 'Email atau password salah.',
+        ]);
     }
 
     /**
@@ -61,18 +50,6 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
-        // Log user activity before logout
-        if (Auth::user()) {
-            Auth::user()->activities()->create([
-                'action' => 'logout',
-                'entity_type' => 'auth',
-                'ip_address' => $request->ip(),
-                'metadata' => json_encode([
-                    'timestamp' => now(),
-                ]),
-            ]);
-        }
-
         Auth::logout();
 
         $request->session()->invalidate();

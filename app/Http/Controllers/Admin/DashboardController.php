@@ -28,8 +28,8 @@ class DashboardController extends Controller
             'process_complaints' => Complaint::where('status', 'process')->count(),
             'completed_complaints' => Complaint::where('status', 'completed')->count(),
             'rejected_complaints' => Complaint::where('status', 'rejected')->count(),
-            'active_applications' => Application::where('status', 'active')->count(),
-            'published_news' => News::where('status', 'published')->count(),
+            'active_applications' => Application::where('is_active', true)->count(),
+            'published_news' => News::published()->count(),
         ];
 
         // Get recent complaints
@@ -81,23 +81,23 @@ class DashboardController extends Controller
 
         // Complaint reports
         $complaintReport = Complaint::selectRaw('status, count(*) as count')
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereBetween('viewed_at', [$startDate, $endDate])
             ->groupBy('status')
             ->get();
 
         // User registration report
         $userReport = User::where('role', 'masyarakat')
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereBetween('viewed_at', [$startDate, $endDate])
             ->selectRaw('DATE(created_at) as date, count(*) as count')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
-        // News view report
+        // News view report (only published news)
         $newsReport = News::withCount(['views' => function ($query) use ($startDate, $endDate) {
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+            $query->whereBetween('viewed_at', [$startDate, $endDate]);
         }])
-            ->where('status', 'published')
+            ->published()
             ->orderBy('views_count', 'desc')
             ->take(10)
             ->get();
@@ -163,7 +163,7 @@ class DashboardController extends Controller
         ];
 
         // Popular services
-        $popularServices = Application::where('status', 'active')
+        $popularServices = Application::where('is_active', true)
             ->withCount('favorites')
             ->orderBy('favorites_count', 'desc')
             ->take(10)

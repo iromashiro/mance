@@ -23,18 +23,20 @@ class RegisterController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:20'],
             'password' => ['required', 'min:8', 'confirmed'],
             'category' => ['required', 'in:pelajar,pegawai,pencari_kerja,pengusaha'],
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'category' => $request->category,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'password' => Hash::make($validated['password']),
+            'category' => $validated['category'],
             'role' => 'masyarakat',
         ]);
 
@@ -44,11 +46,11 @@ class RegisterController extends Controller
         $user->activities()->create([
             'action' => 'register',
             'entity_type' => 'auth',
-            'ip_address' => $request->ip(),
-            'metadata' => json_encode([
+            'metadata' => [
+                'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
-                'timestamp' => now(),
-            ]),
+                'timestamp' => now()->toIso8601String(),
+            ],
         ]);
 
         // Send welcome notification
@@ -56,9 +58,11 @@ class RegisterController extends Controller
             'title' => 'Selamat Datang di MANCE!',
             'message' => 'Terima kasih telah mendaftar di aplikasi MANCE. Nikmati berbagai layanan smart city Muara Enim.',
             'type' => 'welcome',
-            'data' => json_encode(['registered_at' => now()]),
+            'data' => [
+                'registered_at' => now()->toIso8601String(),
+            ],
         ]);
 
-        return redirect('/dashboard');
+        return redirect()->route('dashboard')->with('status', 'Pendaftaran berhasil, selamat datang di MANCE!');
     }
 }

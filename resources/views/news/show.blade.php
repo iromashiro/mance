@@ -125,7 +125,7 @@
 
     <!-- Related News -->
     @php
-    $relatedNews = \App\Models\News::where('status', 'published')
+    $relatedNews = \App\Models\News::published()
     ->where('id', '!=', $news->id)
     ->latest('published_at')
     ->take(3)
