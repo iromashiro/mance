@@ -22,6 +22,8 @@
 </head>
 
 <body class="h-full">
+    {{-- Global Page Loader --}}
+    @include('components.page-loader')
     <div class="min-h-screen flex flex-col justify-center bg-gradient-to-br from-primary-50 via-white to-primary-50">
         <div class="sm:mx-auto sm:w-full sm:max-w-md">
             <div class="flex justify-center">

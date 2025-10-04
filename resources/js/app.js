@@ -40,114 +40,74 @@ window.addEventListener('beforeinstallprompt', (e) => {
   }
 });
 
-// --- Global Page Loader (3D) ---
-// Membuat overlay loader 3D dan menampilkannya setiap akan berpindah halaman.
-// Ringan, tanpa dependency tambahan. Disable per-element dengan: data-no-loader="true"
-
+// Page Transition Loader
 (() => {
   const LOADER_ID = 'page-loader';
+  const getLoader = () => document.getElementById(LOADER_ID);
 
-  const buildLoaderEl = () => {
-    const div = document.createElement('div');
-    div.id = LOADER_ID;
-    div.className = 'page-loader';
-    div.setAttribute('aria-hidden', 'true');
-    div.innerHTML = `
-      <div class="loader-container">
-        <div class="loader-cube">
-          <div class="loader-cube__face face--front"></div>
-          <div class="loader-cube__face face--back"></div>
-          <div class="loader-cube__face face--right"></div>
-          <div class="loader-cube__face face--left"></div>
-          <div class="loader-cube__face face--top"></div>
-          <div class="loader-cube__face face--bottom"></div>
-        </div>
-
-        <div class="loader-orbit"></div>
-
-        <div class="loader-text text-gray-800 text-sm tracking-wider">
-          Memuat
-          <span class="loader-dots">
-            <span class="loader-dot"></span>
-            <span class="loader-dot"></span>
-            <span class="loader-dot"></span>
-          </span>
-        </div>
-      </div>
-    `;
-    return div;
+  const show = () => {
+    const el = getLoader();
+    if (!el) return;
+    el.classList.remove('hidden');
+    if (!el.classList.contains('flex')) el.classList.add('flex');
   };
 
-  const ensureLoader = () => {
-    let el = document.getElementById(LOADER_ID);
-    if (!el) {
-      el = buildLoaderEl();
-      document.body.appendChild(el);
-    }
-    return el;
+  const hide = () => {
+    const el = getLoader();
+    if (!el) return;
+    el.classList.add('hidden');
+    el.classList.remove('flex');
   };
 
-  const showLoader = () => {
-    const el = ensureLoader();
-    el.classList.add('active');
-  };
+  const isModifiedClick = (e) => e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
 
-  const hideLoader = () => {
-    const el = document.getElementById(LOADER_ID);
-    if (el) el.classList.remove('active');
-  };
-
-  const shouldIgnoreLink = (a) => {
+  const shouldIgnoreLink = (a, e) => {
     if (!a) return true;
-    const href = a.getAttribute('href');
-    if (!href || href.trim() === '' || href.startsWith('#')) return true;
-    const target = (a.getAttribute('target') || '').toLowerCase();
-    if (target === '_blank') return true;
+    if (isModifiedClick(e) || e.defaultPrevented) return true;
+    const href = a.getAttribute('href') || '';
+    if (href.startsWith('#') || href.startsWith('javascript:')) return true;
     if (a.hasAttribute('download')) return true;
-    if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return true;
-    if (a.dataset && (a.dataset.noLoader === '1' || a.dataset.noLoader === 'true')) return true;
+    const target = (a.getAttribute('target') || '').toLowerCase();
+    if (target && target !== '_self') return true;
+    if (a.dataset.noLoader != null) return true;
+
+    try {
+      const url = new URL(a.href, window.location.href);
+      if (url.origin !== window.location.origin) return true; // external
+      const curr = new URL(window.location.href);
+      if (url.href === curr.href) return true; // same URL
+    } catch {
+      return true;
+    }
     return false;
   };
 
-  // Tampilkan loader saat klik link biasa
+  const shouldIgnoreForm = (form) => {
+    if (!form) return true;
+    if (form.dataset.noLoader != null) return true;
+    const target = (form.getAttribute('target') || '').toLowerCase();
+    if (target && target !== '_self') return true;
+    return false;
+  };
+
+  // Link clicks
   document.addEventListener('click', (e) => {
-    const a = e.target.closest('a');
-    if (!a) return;
-    if (e.defaultPrevented) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
-    if (shouldIgnoreLink(a)) return;
-
-    try {
-      const nextUrl = new URL(a.href, window.location.href);
-      if (nextUrl.href === window.location.href) return; // sama persis
-    } catch (_) {
-      // ignore parsing error
-    }
-
-    showLoader();
+    const a = e.target.closest('a[href]');
+    if (!a || shouldIgnoreLink(a, e)) return;
+    show();
   }, true);
 
-  // Tampilkan loader saat submit form
+  // Form submits
   document.addEventListener('submit', (e) => {
     const form = e.target;
-    if (!(form instanceof HTMLFormElement)) return;
-    if (form.hasAttribute('data-no-loader')) return;
-    showLoader();
+    if (shouldIgnoreForm(form)) return;
+    show();
   }, true);
 
-  // Saat halaman akan unload (misal refresh/navigate via browser)
-  window.addEventListener('beforeunload', () => {
-    showLoader();
-  });
+  // Address bar / back-forward nav
+  window.addEventListener('beforeunload', () => show());
 
-  // Jika kembali dari bfcache (Back/Forward), pastikan loader disembunyikan
-  window.addEventListener('pageshow', (e) => {
-    if (e.persisted) hideLoader();
-  });
-
-  // Pastikan tersembunyi setelah halaman selesai load
-  window.addEventListener('load', hideLoader);
-
-  // API global opsional
-  window.appPageLoader = { show: showLoader, hide: hideLoader };
+  // Ensure hidden when page is ready or restored from bfcache
+  window.addEventListener('load', hide);
+  window.addEventListener('pageshow', (e) => { if (e.persisted) hide(); });
 })();

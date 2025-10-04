@@ -37,6 +37,8 @@
 </head>
 
 <body class="h-full font-sans bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+    {{-- Global Page Loader --}}
+    @include('components.page-loader')
     <div x-data="{ sidebarOpen: false, showNotifications: false, showProfile: false }" class="min-h-screen">
 
         <!-- Mobile Sidebar Overlay -->

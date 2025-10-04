@@ -18,6 +18,8 @@
 </head>
 
 <body class="h-full">
+    {{-- Global Page Loader --}}
+    @include('components.page-loader')
     <div x-data="{ sidebarOpen: false }" class="min-h-screen bg-gray-100">
         <!-- Mobile sidebar backdrop -->
         <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
