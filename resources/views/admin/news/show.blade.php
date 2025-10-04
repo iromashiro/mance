@@ -50,7 +50,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
-                        {{ $news->author }}
+                        {{ $news->author->name }}
                     </span>
                     <span class="flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +171,7 @@
                     </div>
                     <div>
                         <dt class="text-gray-500">Penulis</dt>
-                        <dd class="font-medium text-gray-900">{{ $news->author }}</dd>
+                        <dd class="font-medium text-gray-900">{{ $news->author->name }}</dd>
                     </div>
                     <div>
                         <dt class="text-gray-500">Dibuat</dt>
