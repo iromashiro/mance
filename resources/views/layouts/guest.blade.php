@@ -15,65 +15,133 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <!-- Prevent splash FOUC if already seen -->
+
     <script>
         try {
-    {{-- Splash Screen (sekali per device) --}}
-
             if (localStorage.getItem('mance_splash_v1_seen')) {
                 document.documentElement.setAttribute('data-splash-seen', '1');
             }
         } catch (e) {}
     </script>
-    <!-- Hide Alpine.js x-cloak -->
+
     <style>
         [x-cloak] {
             display: none !important
         }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(5deg);
+            }
+        }
+
+        @keyframes blob {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(20px, -20px) scale(1.1);
+            }
+
+            50% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+
+            75% {
+                transform: translate(20px, 20px) scale(1.05);
+            }
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-blob {
+            animation: blob 12s ease-in-out infinite;
+        }
+
+        .animate-blob-slow {
+            animation: blob 18s ease-in-out infinite;
+        }
     </style>
+
     @stack('styles')
 </head>
 
-<body class="h-full">
-    {{-- Global Page Loader --}}
-    @include('components.page-loader')
+<body class="h-full font-sans antialiased">
     @include('components.splash')
-    <div class="min-h-screen flex flex-col justify-center bg-gradient-to-br from-primary-50 via-white to-primary-50">
-        <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="flex justify-center">
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+    @include('components.page-loader')
+
+    <div class="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <!-- Animated Background Blobs -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div
+                class="absolute top-0 -left-4 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob">
+            </div>
+            <div
+                class="absolute top-0 -right-4 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000">
+            </div>
+            <div
+                class="absolute -bottom-8 left-20 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob-slow animation-delay-4000">
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="relative min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+            <!-- Logo Section -->
+            <div class="text-center mb-8">
+                <a href="/" class="inline-block">
+                    <div class="relative group">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity">
+                        </div>
+                        <div
+                            class="relative bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-xl border border-white/50">
+                            <h1
+                                class="text-3xl font-black bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+                                MANCE
+                            </h1>
+                            <p class="text-xs text-gray-600 font-medium mt-1">Muara Enim Smart City</p>
+                        </div>
                     </div>
-                    <h1 class="text-3xl font-bold text-primary-800">MANCE</h1>
+                </a>
+            </div>
+
+            @yield('header')
+
+            <!-- Main Card -->
+            <div class="w-full max-w-md">
+                <div class="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden">
+                    <div class="p-6 sm:p-8 lg:p-10">
+                        @yield('content')
+                    </div>
                 </div>
             </div>
-            <h2 class="mt-4 text-center text-sm text-gray-600">
-                Muara Enim Smart City
-            </h2>
-            @yield('header')
-        </div>
 
-        <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10">
-                @yield('content')
+            <!-- Footer -->
+            <div class="mt-8 text-center">
+                <p class="text-sm text-gray-600">
+                    © 2025 Pemerintah Kabupaten Muara Enim
+                </p>
             </div>
-            @stack('scripts')
-        </div>
-
-        <div class="mt-8 text-center">
-            <p class="text-sm text-gray-500">
-                © 2025 Pemerintah Kabupaten Muara Enim. All rights reserved.
-            </p>
         </div>
     </div>
+
+    @stack('scripts')
 </body>
 
 </html>
