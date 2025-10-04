@@ -98,6 +98,7 @@ class ComplaintController extends Controller
             return redirect()->route('complaints.show', $complaint)
                 ->with('success', 'Pengaduan berhasil dibuat dengan nomor tiket: ' . $complaint->ticket_number);
         } catch (\Exception $e) {
+            \dd($e);
             DB::rollback();
             return back()->withInput()->with('error', 'Terjadi kesalahan saat membuat pengaduan.');
         }

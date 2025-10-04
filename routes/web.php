@@ -30,6 +30,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'index'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
 
+    Route::get('/onboarding', fn() => view('auth.onboarding'))->name('onboarding');
     // Password Reset Routes (stub for now - will redirect to login)
     Route::get('/forgot-password', function () {
         return redirect()->route('login')->with('info', 'Silakan hubungi admin untuk reset password.');

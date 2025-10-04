@@ -24,6 +24,14 @@
 
     <!-- Scripts -->
     @vite('resources/js/app.js')
+    <!-- Prevent splash FOUC if already seen -->
+    <script>
+        try {
+            if (localStorage.getItem('mance_splash_v1_seen')) {
+                document.documentElement.setAttribute('data-splash-seen', '1');
+            }
+        } catch (e) {}
+    </script>
 
     <!-- Hide Alpine.js x-cloak -->
     <style>
@@ -31,6 +39,8 @@
             display: none !important
         }
     </style>
+    {{-- Splash Screen (sekali per device) --}}
+
 
     <!-- Additional Styles -->
     @stack('styles')
@@ -38,6 +48,11 @@
 
 <body class="h-full font-sans bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
     {{-- Global Page Loader --}}
+    {{-- Splash Screen (sekali per device) --}}
+    @include('components.splash')
+
+    {{-- Walkthrough Overlay (sekali per device setelah login) --}}
+    @include('components.walkthrough')
     @include('components.page-loader')
     <div x-data="{ sidebarOpen: false, showNotifications: false, showProfile: false }" class="min-h-screen">
 
@@ -126,7 +141,7 @@
                                 x-transition:leave="transition ease-in duration-150"
                                 x-transition:leave-start="opacity-100 scale-100"
                                 x-transition:leave-end="opacity-0 scale-95"
-                                class="origin-top-right absolute right-0 mt-2 w-96 rounded-2xl shadow-2xl bg-white/95 backdrop-blur-xl ring-1 ring-black/5 animate-slide-up">
+                                class="origin-top-right absolute right-0 mt-2 w-96 rounded-2xl shadow-2xl bg-white/95 backdrop-blur-xl z-50 ring-1 ring-black/5 animate-slide-up">
                                 <div class="p-4 border-b border-gray-100">
                                     <div class="flex justify-between items-center">
                                         <h3 class="text-lg font-semibold text-gray-900">Notifikasi</h3>
@@ -220,7 +235,7 @@
                                 x-transition:leave="transition ease-in duration-150"
                                 x-transition:leave-start="opacity-100 scale-100"
                                 x-transition:leave-end="opacity-0 scale-95"
-                                class="origin-top-right absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl bg-white/95 backdrop-blur-xl ring-1 ring-black/5 animate-slide-up overflow-hidden">
+                                class="origin-top-right absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl bg-white z-50 ring-1 ring-black/5 animate-slide-up overflow-hidden">
 
                                 <!-- Profile Header -->
                                 <div class="bg-gradient-to-br from-primary-500 to-accent-500 p-4">
@@ -291,8 +306,7 @@
         </main>
 
         <!-- Modern Bottom Navigation (Mobile) -->
-        <nav
-            class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 z-50 shadow-lg">
+        <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white z-50 border-t border-gray-200/50 z-50 shadow-lg">
             <div class="grid grid-cols-5 h-16">
                 <a href="{{ route('dashboard') }}" class="group flex flex-col items-center justify-center relative">
                     <div
@@ -389,8 +403,7 @@
         x-transition:enter-end="opacity-100 transform translate-y-0"
         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0" class="fixed bottom-24 lg:bottom-8 right-4 z-50 max-w-sm">
-        <div
-            class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-success-100 p-4 flex items-start space-x-3">
+        <div class="bg-white z-50 rounded-2xl shadow-2xl border border-success-100 p-4 flex items-start space-x-3">
             <div class="flex-shrink-0">
                 <div
                     class="h-10 w-10 rounded-full bg-gradient-to-br from-success-400 to-teal-400 flex items-center justify-center">
@@ -420,8 +433,7 @@
         x-transition:enter-end="opacity-100 transform translate-y-0"
         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0" class="fixed bottom-24 lg:bottom-8 right-4 z-50 max-w-sm">
-        <div
-            class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-red-100 p-4 flex items-start space-x-3">
+        <div class="bg-white z-50 rounded-2xl shadow-2xl border border-red-100 p-4 flex items-start space-x-3">
             <div class="flex-shrink-0">
                 <div
                     class="h-10 w-10 rounded-full bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center">

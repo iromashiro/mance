@@ -19,11 +19,29 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Prevent splash FOUC if already seen -->
+    <script>
+        try {
+    {{-- Splash Screen (sekali per device) --}}
+
+            if (localStorage.getItem('mance_splash_v1_seen')) {
+                document.documentElement.setAttribute('data-splash-seen', '1');
+            }
+        } catch (e) {}
+    </script>
+    <!-- Hide Alpine.js x-cloak -->
+    <style>
+        [x-cloak] {
+            display: none !important
+        }
+    </style>
+    @stack('styles')
 </head>
 
 <body class="h-full">
     {{-- Global Page Loader --}}
     @include('components.page-loader')
+    @include('components.splash')
     <div class="min-h-screen flex flex-col justify-center bg-gradient-to-br from-primary-50 via-white to-primary-50">
         <div class="sm:mx-auto sm:w-full sm:max-w-md">
             <div class="flex justify-center">
@@ -47,6 +65,7 @@
             <div class="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10">
                 @yield('content')
             </div>
+            @stack('scripts')
         </div>
 
         <div class="mt-8 text-center">
