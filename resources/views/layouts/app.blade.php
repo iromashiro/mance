@@ -136,7 +136,7 @@
 
                         <!-- Notifications Modal -->
                         <div x-show="showNotifications" x-cloak
-                            class="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-6 pt-16 sm:pt-20"
+                            class="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-6 pt-24 sm:pt-32"
                             @click.self="showNotifications = false" style="pointer-events: auto;">
                             <!-- Backdrop -->
                             <div x-show="showNotifications" x-transition:enter="transition ease-out duration-200"

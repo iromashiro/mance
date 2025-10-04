@@ -69,7 +69,7 @@
 
             <!-- Content -->
             <div class="prose prose-lg max-w-none text-gray-700">
-                {!! nl2br(e($news->content)) !!}
+                {!! $news->content !!}
             </div>
 
             <!-- Tags/Categories if available -->

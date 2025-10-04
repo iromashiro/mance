@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ApplicationController as AdminApplicationControll
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\ComplaintController as AdminComplaintController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 
 // Public routes
 Route::get('/', function () {
@@ -104,11 +105,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     // Categories Management
     Route::get('categories', [AdminDashboardController::class, 'categories'])->name('categories.index');
+    Route::post('categories', [AdminCategoryController::class, 'store'])->name('categories.store');
+    Route::put('categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
+    Route::delete('categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
 
     // Reports & Settings
     Route::get('reports', [AdminDashboardController::class, 'reports'])->name('reports');
     Route::get('settings', [AdminDashboardController::class, 'settings'])->name('settings');
     Route::get('profile', [AdminDashboardController::class, 'profile'])->name('profile');
+    Route::put('profile', [AdminDashboardController::class, 'updateProfile'])->name('profile.update');
 });
 
 // API Routes for AJAX/Tracking

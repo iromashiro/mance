@@ -64,7 +64,7 @@ class DashboardController extends Controller
      */
     public function categories()
     {
-        $categories = Category::withCount('users')->get();
+        $categories = Category::all();
         $complaintCategories = ComplaintCategory::withCount('complaints')->get();
 
         return view('admin.categories.index', compact('categories', 'complaintCategories'));
@@ -81,13 +81,13 @@ class DashboardController extends Controller
 
         // Complaint reports
         $complaintReport = Complaint::selectRaw('status, count(*) as count')
-            ->whereBetween('viewed_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('status')
             ->get();
 
         // User registration report
         $userReport = User::where('role', 'masyarakat')
-            ->whereBetween('viewed_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->selectRaw('DATE(created_at) as date, count(*) as count')
             ->groupBy('date')
             ->orderBy('date')
@@ -136,6 +136,45 @@ class DashboardController extends Controller
         $admin = auth()->user();
 
         return view('admin.profile.index', compact('admin'));
+    }
+
+    /**
+     * Update admin profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $admin = auth()->user();
+
+        // Check if this is a password change request
+        if ($request->input('action') === 'change_password') {
+            $validated = $request->validate([
+                'current_password' => 'required',
+                'new_password' => 'required|min:8|confirmed',
+            ]);
+
+            // Verify current password
+            if (!password_verify($validated['current_password'], $admin->password)) {
+                return back()->withErrors(['current_password' => 'Password saat ini salah']);
+            }
+
+            // Update password
+            $admin->update([
+                'password' => bcrypt($validated['new_password'])
+            ]);
+
+            return back()->with('success', 'Password berhasil diubah');
+        }
+
+        // Regular profile update
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $admin->id,
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $admin->update($validated);
+
+        return back()->with('success', 'Profil berhasil diperbarui');
     }
 
     /**

@@ -20,7 +20,7 @@
 <body class="h-full">
     {{-- Global Page Loader --}}
     @include('components.page-loader')
-    <div x-data="{ sidebarOpen: false }" class="min-h-screen bg-gray-100">
+    <div x-data="{ sidebarOpen: false }" class="flex min-h-screen bg-gray-100">
         <!-- Mobile sidebar backdrop -->
         <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
             class="fixed inset-0 bg-gray-600 bg-opacity-75 z-40 lg:hidden">
@@ -28,7 +28,7 @@
 
         <!-- Sidebar -->
         <div :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-            class="fixed inset-y-0 left-0 z-50 w-64 bg-primary-800 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0">
+            class="fixed inset-y-0 left-0 z-50 w-64 bg-primary-800 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:flex-shrink-0">
 
             <!-- Logo -->
             <div class="flex items-center justify-center h-16 bg-primary-900">
@@ -124,7 +124,7 @@
         </div>
 
         <!-- Main content area -->
-        <div class="lg:pl-64 flex flex-col flex-1">
+        <div class="flex flex-col flex-1">
             <!-- Top header -->
             <header class="bg-white shadow-sm">
                 <div class="flex items-center justify-between px-4 py-3 lg:px-6">

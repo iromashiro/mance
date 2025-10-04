@@ -19,6 +19,10 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
-        "alpinejs": "^3.15.0"
+        "@tiptap/core": "^3.6.5",
+        "@tiptap/pm": "^3.6.5",
+        "@tiptap/starter-kit": "^3.6.5",
+        "alpinejs": "^3.15.0",
+        "flowbite-typography": "^1.0.5"
     }
 }

@@ -29,8 +29,8 @@ class NewsController extends Controller
         }
 
         // Status filter
-        if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
+        if ($request->has('is_published') && $request->is_published !== '') {
+            $query->where('is_published', $request->is_published);
         }
 
         $news = $query->latest()->paginate(20);
@@ -57,11 +57,12 @@ class NewsController extends Controller
             'excerpt' => 'required|string|max:500',
             'content' => 'required|string',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'status' => 'required|in:draft,published',
+            'is_published' => 'required|boolean',
             'published_at' => 'nullable|date',
         ]);
 
-        $data = $request->only(['title', 'excerpt', 'content', 'status']);
+        $data = $request->only(['title', 'excerpt', 'content']);
+        $data['is_published'] = $request->boolean('is_published');
 
         // Generate slug if not provided
         $data['slug'] = $request->slug ?: Str::slug($request->title);
@@ -76,7 +77,7 @@ class NewsController extends Controller
         }
 
         // Set published date
-        if ($request->status === 'published') {
+        if ($request->boolean('is_published')) {
             $data['published_at'] = $request->published_at ?: now();
         }
 
@@ -115,11 +116,12 @@ class NewsController extends Controller
             'excerpt' => 'required|string|max:500',
             'content' => 'required|string',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'status' => 'required|in:draft,published',
+            'is_published' => 'required|boolean',
             'published_at' => 'nullable|date',
         ]);
 
-        $data = $request->only(['title', 'excerpt', 'content', 'status']);
+        $data = $request->only(['title', 'excerpt', 'content']);
+        $data['is_published'] = $request->boolean('is_published');
 
         // Update slug if provided
         if ($request->slug) {
@@ -138,7 +140,7 @@ class NewsController extends Controller
         }
 
         // Update published date
-        if ($request->status === 'published' && !$news->published_at) {
+        if ($request->boolean('is_published') && !$news->published_at) {
             $data['published_at'] = $request->published_at ?: now();
         }
 
@@ -170,7 +172,7 @@ class NewsController extends Controller
     public function publish(News $news)
     {
         $news->update([
-            'status' => 'published',
+            'is_published' => true,
             'published_at' => now(),
         ]);
 
@@ -183,7 +185,7 @@ class NewsController extends Controller
     public function unpublish(News $news)
     {
         $news->update([
-            'status' => 'draft',
+            'is_published' => false,
         ]);
 
         return back()->with('success', 'Berita berhasil di-unpublish.');

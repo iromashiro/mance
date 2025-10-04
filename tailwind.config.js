@@ -158,5 +158,6 @@ export default {
         require('@tailwindcss/forms'),
         require('@tailwindcss/aspect-ratio'),
         require('@tailwindcss/typography'),
+        require('flowbite-typography'),
     ],
 }

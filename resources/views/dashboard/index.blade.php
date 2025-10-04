@@ -294,6 +294,117 @@
 </div>
 
 {{-- =========================
+         REKOMENDASI UNTUK ANDA
+         ========================= --}}
+@if($recommendedApps->isNotEmpty() || $recommendedNews->isNotEmpty())
+<div class="mb-8">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-2xl font-heading font-bold text-gray-900">Rekomendasi Untuk Anda</h2>
+            <p class="text-sm text-gray-600 mt-1">Berdasarkan kategori: <span
+                    class="font-semibold text-primary-600">{{ ucfirst(auth()->user()->category ?? 'Umum') }}</span></p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {{-- Recommended Applications --}}
+        @if($recommendedApps->isNotEmpty())
+        <div
+            class="bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl shadow-xl overflow-hidden border border-primary-100">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-primary-600 rounded-lg mr-2">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                                </path>
+                            </svg>
+                        </span>
+                        Layanan Rekomendasi
+                    </h3>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    @foreach($recommendedApps->take(4) as $app)
+                    <a href="{{ route('applications.show', $app) }}"
+                        class="group bg-white rounded-xl p-4 hover:shadow-lg transition-all hover:-translate-y-1">
+                        <div class="flex flex-col items-center text-center">
+                            @if($app->icon_path)
+                            <img src="{{ Storage::url($app->icon_path) }}" alt="{{ $app->name }}"
+                                class="w-12 h-12 rounded-xl mb-2 group-hover:scale-110 transition-transform">
+                            @else
+                            <div
+                                class="w-12 h-12 bg-gradient-to-br from-primary-400 to-accent-400 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                                    </path>
+                                </svg>
+                            </div>
+                            @endif
+                            <h4 class="text-sm font-semibold text-gray-900 line-clamp-2">{{ $app->name }}</h4>
+                        </div>
+                    </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- Recommended News --}}
+        @if($recommendedNews->isNotEmpty())
+        <div
+            class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-xl overflow-hidden border border-blue-100">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg mr-2">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z">
+                                </path>
+                            </svg>
+                        </span>
+                        Berita Untuk Anda
+                    </h3>
+                </div>
+                <div class="space-y-3">
+                    @foreach($recommendedNews as $news)
+                    <a href="{{ route('news.show', $news) }}"
+                        class="group block bg-white rounded-xl p-3 hover:shadow-lg transition-all hover:-translate-y-0.5">
+                        <div class="flex space-x-3">
+                            @if($news->thumbnail_path)
+                            <img src="{{ Storage::url($news->thumbnail_path) }}" alt="{{ $news->title }}"
+                                class="w-16 h-16 object-cover rounded-lg">
+                            @else
+                            <div
+                                class="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15">
+                                    </path>
+                                </svg>
+                            </div>
+                            @endif
+                            <div class="flex-1 min-w-0">
+                                <h4
+                                    class="text-sm font-semibold text-gray-900 group-hover:text-blue-700 line-clamp-2 transition-colors">
+                                    {{ $news->title }}</h4>
+                                <p class="text-xs text-gray-500 mt-1">{{ $news->published_at->diffForHumans() }}</p>
+                            </div>
+                        </div>
+                    </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+</div>
+@endif
+
+{{-- =========================
          RECENT SECTIONS
          ========================= --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

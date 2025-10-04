@@ -13,6 +13,13 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
+            // User Categories (MUST MATCH users.category enum)
+            ['name' => 'Pelajar', 'slug' => 'pelajar'],
+            ['name' => 'Pegawai', 'slug' => 'pegawai'],
+            ['name' => 'Pencari Kerja', 'slug' => 'pencari_kerja'],
+            ['name' => 'Pengusaha', 'slug' => 'pengusaha'],
+
+            // General Categories (untuk apps yang umum)
             ['name' => 'Kesehatan', 'slug' => 'kesehatan'],
             ['name' => 'Pendidikan', 'slug' => 'pendidikan'],
             ['name' => 'Transportasi', 'slug' => 'transportasi'],
@@ -26,7 +33,10 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            Category::create($category);
+            Category::firstOrCreate(
+                ['slug' => $category['slug']],
+                ['name' => $category['name']]
+            );
         }
     }
 }

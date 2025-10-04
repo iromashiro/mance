@@ -31,7 +31,22 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Get latest news
+        // Get personalized news recommendations based on user category
+        $recommendedNews = News::published()
+            ->where('category', $user->category)
+            ->latest('published_at')
+            ->take(3)
+            ->get();
+
+        // If no news for user category, get latest news instead
+        if ($recommendedNews->isEmpty()) {
+            $recommendedNews = News::published()
+                ->latest('published_at')
+                ->take(3)
+                ->get();
+        }
+
+        // Get latest news (general)
         $latestNews = News::published()
             ->latest('published_at')
             ->take(5)
@@ -54,6 +69,14 @@ class DashboardController extends Controller
             ->take(4)
             ->get();
 
+        // If no apps for user category, get random apps instead
+        if ($recommendedApps->isEmpty()) {
+            $recommendedApps = Application::where('is_active', true)
+                ->inRandomOrder()
+                ->take(4)
+                ->get();
+        }
+
         return view('dashboard.index', compact(
             'totalComplaints',
             'activeComplaints',
@@ -61,6 +84,7 @@ class DashboardController extends Controller
             'unreadNotifications',
             'recentComplaints',
             'latestNews',
+            'recommendedNews',
             'favoriteApps',
             'recommendedApps'
         ));
