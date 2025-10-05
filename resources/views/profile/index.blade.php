@@ -261,7 +261,13 @@
                                                 <p class="text-xs text-gray-500">{{ $activity->description }}</p>
                                             </div>
                                             <span class="text-xs text-gray-400">
-                                                {{ $activity->created_at->diffForHumans() }}
+                                                @php
+                                                $when = $activity->created_at instanceof \Illuminate\Support\Carbon
+                                                ? $activity->created_at->diffForHumans()
+                                                :
+                                                (\Illuminate\Support\Carbon::parse($activity->created_at)->diffForHumans());
+                                                @endphp
+                                                {{ $when }}
                                             </span>
                                         </div>
                                     </li>

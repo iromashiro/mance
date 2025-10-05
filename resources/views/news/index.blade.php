@@ -361,21 +361,41 @@
                 </h3>
 
                 <div class="space-y-4">
-                    @foreach(range(1, 5) as $index)
-                    <div class="flex items-start space-x-3 group cursor-pointer">
+                    @if(isset($trendingNews) && count($trendingNews) > 0)
+                    @foreach($trendingNews as $index => $t)
+                    <a href="{{ route('news.show', is_object($t) ? $t->id : $t['id']) }}"
+                        class="flex items-start space-x-3 group cursor-pointer">
                         <span
                             class="flex-shrink-0 h-8 w-8 bg-gradient-to-br from-primary-400 to-accent-400 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                            {{ $index }}
+                            {{ $index + 1 }}
                         </span>
                         <div class="flex-1">
                             <h4
                                 class="text-sm font-medium text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2">
-                                Lorem ipsum dolor sit amet consectetur adipisicing elit
+                                {{ is_object($t) ? $t->title : ($t['title'] ?? '-') }}
                             </h4>
-                            <p class="text-xs text-gray-500 mt-1">2 jam yang lalu</p>
+                            @php
+                            $when = '';
+                            $pub = is_object($t) ? ($t->published_at ?? null) : ($t['published_at'] ?? null);
+                            if ($pub) {
+                            try {
+                            $when = $pub instanceof \Illuminate\Support\Carbon
+                            ? $pub->diffForHumans()
+                            : \Illuminate\Support\Carbon::parse($pub)->diffForHumans();
+                            } catch (\Throwable $e) {
+                            $when = '';
+                            }
+                            }
+                            @endphp
+                            @if($when)
+                            <p class="text-xs text-gray-500 mt-1">{{ $when }}</p>
+                            @endif
                         </div>
-                    </div>
+                    </a>
                     @endforeach
+                    @else
+                    <p class="text-sm text-gray-500">Belum ada data trending.</p>
+                    @endif
                 </div>
             </div>
 
