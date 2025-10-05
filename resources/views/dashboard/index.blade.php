@@ -301,7 +301,7 @@
                 </div>
             </a>
 
-            <a href="{{ route('news.index') }}"
+            <a href="{{ route('tours.index') }}"
                 class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 p-6 hover:shadow-xl transition-all hover:-translate-y-1">
                 <div
                     class="absolute top-0 right-0 w-20 h-20 bg-blue-200/30 rounded-full blur-2xl group-hover:scale-150 transition-transform">
@@ -310,12 +310,15 @@
                     <div
                         class="h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <svg class="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <!-- Pin wisata / destinasi -->
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15" />
+                                d="M12 21s-7-6.273-7-12a7 7 0 1 1 14 0c0 5.727-7 12-7 12z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
                         </svg>
                     </div>
-                    <h3 class="font-semibold text-gray-900">Berita</h3>
-                    <p class="text-xs text-gray-600 mt-1">Informasi terkini</p>
+                    <h3 class="font-semibold text-gray-900">Wisata</h3>
+                    <p class="text-xs text-gray-600 mt-1">Panduan Wisata</p>
                 </div>
             </a>
 
