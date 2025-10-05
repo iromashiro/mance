@@ -72,26 +72,21 @@
                 <div class="flex items-center justify-between h-16">
                     <!-- Left Section -->
                     <div class="flex items-center">
-                        <!-- Mobile Menu Button -->
-                        <button @click="sidebarOpen = true"
-                            class="lg:hidden p-2 rounded-xl text-gray-500 hover:text-primary-600 hover:bg-primary-50 transition-all">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 6h16M4 12h16M4 18h16"></path>
-                            </svg>
-                        </button>
 
                         <!-- Logo -->
-                        <div class="flex-shrink-0 flex items-center">
-                            <div class="relative">
+                        <div class="flex-shrink-0 flex items-left">
+                            <a href="{{ route('dashboard') }}" class="relative inline-flex items-left">
+                                <!-- glow background -->
                                 <div
-                                    class="absolute inset-0 bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl blur-lg opacity-70 animate-pulse-slow">
+                                    class="absolute -inset-3 bg-gradient-to-r rounded-2xl blur-xl opacity-60 animate-pulse-slow">
                                 </div>
-                                <h1
-                                    class="relative text-2xl font-heading font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent px-3 py-1">
-                                    MANCE
-                                </h1>
-                            </div>
+
+                                <!-- logo image (lebih besar) -->
+                                <img src="{{ asset('mance-logo.png') }}" alt="MANCE"
+                                    class="relative h-20 sm:h-22 lg:h-[3.5rem] w-auto select-none drop-shadow-md"
+                                    decoding="async" fetchpriority="high" />
+                                <span class="sr-only">MANCE</span>
+                            </a>
                         </div>
 
                         <!-- Desktop Navigation -->
@@ -293,7 +288,17 @@
                                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
                                             </path>
                                         </svg>
-                                        Profil Saya
+                                        Profil
+                                    </a>
+
+                                    <a href="{{ route('favorites.index') }}"
+                                        class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-primary-50 rounded-xl transition-all group">
+                                        <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-primary-600"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M21 8.25c0-2.485-2.239-4.5-5-4.5-1.74 0-3.29.879-4 2.2-.71-1.321-2.26-2.2-4-2.2-2.761 0-5 2.015-5 4.5 0 7 9 11 9 11s9-4 9-11z" />
+                                        </svg>
+                                        Favorit
                                     </a>
 
                                     @if(auth()->user()->role === 'admin')

@@ -153,7 +153,107 @@
 
                 <!-- Detail Content -->
                 <div id="wx-modal-content" class="hidden space-y-4">
-                    {{-- ... (ISI MODAL MU TETAP, tidak diubah) ... --}}
+                    <!-- Current Weather Card -->
+                    <div class="bg-gray-100 rounded-3xl p-6">
+                        <div class="flex items-center text-gray-700 text-sm font-medium mb-6">
+                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                            </svg>
+                            <span>Kondisi Cuaca Saat Ini</span>
+                        </div>
+
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="flex-1">
+                                <div class="flex items-baseline mb-2">
+                                    <span id="wx-temp-modal"
+                                        class="text-7xl font-black text-gray-900 leading-none tracking-tighter">--</span>
+                                    <span class="text-3xl font-bold text-gray-700 ml-1">°C</span>
+                                </div>
+                                <p id="wx-desc-modal" class="text-gray-700 text-base font-medium">—</p>
+                            </div>
+                            <div class="text-right">
+                                <div id="wx-icon-modal" class="text-8xl mb-2">⛅</div>
+                                <p id="wx-feels-modal" class="text-sm text-gray-600 font-medium">Terasa: —°C</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-white rounded-2xl p-4">
+                                <p class="text-sm text-gray-600 mb-1">Kelembapan</p>
+                                <p id="wx-hum-modal" class="text-3xl font-black text-gray-900">—%</p>
+                            </div>
+                            <div class="bg-white rounded-2xl p-4">
+                                <p class="text-sm text-gray-600 mb-1">Indeks UV</p>
+                                <p id="wx-uv-modal" class="text-3xl font-black text-gray-900">—</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Air Quality Card -->
+                    <div class="bg-green-100 rounded-3xl p-6">
+                        <div class="flex items-center text-gray-700 text-sm font-medium mb-6">
+                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Kualitas Udara (AQI)</span>
+                        </div>
+
+                        <div class="flex items-start justify-between mb-5">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span id="aqi-value-modal"
+                                        class="text-7xl font-black text-gray-900 leading-none tracking-tighter">--</span>
+                                    <span id="aqi-chip-modal"
+                                        class="px-4 py-2 rounded-full text-sm font-bold bg-yellow-400 text-gray-900">—</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm text-gray-700">
+                                    <span>Polutan Dominan:</span>
+                                    <span id="aqi-dominant-modal" class="font-bold text-gray-900">—</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center pt-3">
+                                <span class="h-5 w-5 rounded-full ring-4 ring-white shadow-md" id="aqi-dot-modal"
+                                    style="background:#9ca3af"></span>
+                            </div>
+                        </div>
+
+                        <!-- AQI Bar -->
+                        <div class="mt-6">
+                            <div class="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                                <div id="aqi-bar-modal" class="h-2 w-0 rounded-full transition-all duration-500"
+                                    style="background:linear-gradient(90deg,#22c55e,#eab308,#f97316,#ef4444,#8b5cf6,#7f1d1d);">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-6 gap-0.5 mt-3 text-[10px] text-gray-600 font-medium">
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">0</div>
+                                    <div>Baik</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">50</div>
+                                    <div>Sedang</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">100</div>
+                                    <div>Tidak<br>Sehat</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">150</div>
+                                    <div>Sangat<br>Tidak<br>Sehat</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">200</div>
+                                    <div>Berbahaya</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">300+</div>
+                                    <div>Bahaya</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
