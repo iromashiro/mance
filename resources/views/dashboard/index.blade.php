@@ -5,87 +5,251 @@
 @section('content')
 <div class="px-4 py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">
 
+    {{-- ============ DASHBOARD TOP BANNER (STÁTIS) ============ --}}
+    <div class="px-4 pt-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="relative overflow-hidden rounded-3xl h-40 sm:h-48 lg:h-56 mb-4 bg-gray-900">
+            {{-- Background image (ganti sesuai asetmu) --}}
+            <img src="{{ asset('banner.webp') }}" alt="Dashboard Banner"
+                class="absolute inset-0 w-full h-full object-cover opacity-80">
+
+            {{-- Gradient overlay agar teks kebaca --}}
+            <div class="absolute inset-0 bg-gradient-to-r from-gray-900/85 via-gray-900/35 to-transparent"></div>
+
+            {{-- Aksen bulat biar mirip feel JAKI --}}
+            <span class="absolute top-3 left-3 h-2.5 w-2.5 rounded-full bg-primary-400"></span>
+            <span class="absolute bottom-5 right-10 h-10 w-10 rounded-full bg-accent-400/70 blur-lg"></span>
+            <span class="absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-white/10 blur-2xl"></span>
+
+            {{-- Konten teks di sisi kanan --}}
+            <div class="relative z-10 h-full flex items-center justify-end px-6 sm:px-8">
+                <div class="text-right select-none">
+                    <h2 class="text-white font-extrabold tracking-tight text-xl sm:text-2xl">
+                        Selamat Datang, {{ Auth::user()->name }}!
+                    </h2>
+                    <p class="mt-1 text-white/90 text-sm sm:text-base">
+                        Wujudkan Muara Enim, <span class="font-semibold">MEMBARA!</span>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- =========================
-         CUACA & KUALITAS UDARA
+         CUACA & KUALITAS UDARA (COMPACT + CLICKABLE)
          ========================= --}}
-    <div id="wx-card"
-        class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 shadow-2xl mb-8">
+    <button type="button" @click="$dispatch('open-weather-modal')" id="wx-card-compact"
+        class="w-full relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500 via-blue-600 to-pink-600 shadow-2xl mb-6 hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
         <!-- glow -->
-        <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0 opacity-20">
             <div class="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full blur-3xl"></div>
-            <div class="absolute -bottom-10 -left-10 w-60 h-60 bg-white rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-10 -left-10 w-60 h-60 rounded-full blur-3xl"></div>
         </div>
 
-        <div class="relative p-8 lg:p-12 text-white">
-            <!-- Loading -->
-            <div id="wx-loading" class="flex items-center text-white/90">
+        <!-- Glassmorphism overlay -->
+        <div class="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+
+        <div class="relative p-6 text-white">
+            <!-- Loading State -->
+            <div id="wx-loading-compact" class="flex items-center justify-center text-white/90 py-4">
                 <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <circle cx="12" cy="12" r="10" stroke-width="4" class="opacity-25"></circle>
                     <path class="opacity-75" stroke-width="4" d="M4 12a8 8 0 018-8"></path>
                 </svg>
-                Memuat kondisi cuaca dan kualitas udara…
+                <span class="text-sm">Memuat informasi cuaca...</span>
             </div>
 
-            <!-- Content -->
-            <div id="wx-content" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Current weather -->
-                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                    <div class="flex items-center justify-between">
+            <!-- Compact Content -->
+            <div id="wx-content-compact" class="hidden">
+                <div class="flex items-center justify-between">
+                    <!-- Weather Info -->
+                    <div class="flex items-center space-x-4">
+                        <div id="wx-icon-compact" class="text-6xl">⛅</div>
                         <div>
-                            <p class="text-white/80 text-sm">Suhu Saat Ini</p>
+                            <p class="text-white/80 text-sm mb-1">Suhu Saat Ini</p>
                             <div class="flex items-end">
-                                <span id="wx-temp" class="text-5xl font-extrabold leading-none">--</span>
-                                <span class="ml-1 text-2xl font-semibold">°C</span>
+                                <span id="wx-temp-compact" class="text-4xl font-extrabold leading-none">--</span>
+                                <span class="ml-1 text-xl font-semibold">°C</span>
                             </div>
-                            <p id="wx-desc" class="text-white/90 mt-1">—</p>
-                        </div>
-                        <div class="text-right">
-                            <div id="wx-icon" class="text-5xl">⛅</div>
-                            <p id="wx-feels" class="text-white/80 text-sm mt-1">Terasa: —°C</p>
+                            <p id="wx-desc-compact" class="text-white/90 text-sm mt-1">—</p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 mt-4 text-white/90 text-sm">
-                        <div class="flex flex-col">
-                            <span class="opacity-80">Kelembapan</span>
-                            <span id="wx-hum">—%</span>
+                    <!-- Quick Stats -->
+                    <div class="text-right space-y-2">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/20">
+                            <p class="text-white/70 text-xs">Terasa</p>
+                            <p id="wx-feels-compact" class="text-white font-semibold">—°C</p>
                         </div>
-                        <div class="flex flex-col">
-                            <span class="opacity-80">UV</span>
-                            <span id="wx-uv">—</span>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/20">
+                            <p class="text-white/70 text-xs">AQI</p>
+                            <p id="aqi-value-compact" class="text-white font-semibold">--</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Air quality (no health list) -->
-                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-white/80 text-sm">Kualitas Udara (AQI)</p>
-                            <div class="mt-1 flex items-baseline space-x-3">
-                                <span id="aqi-value" class="text-6xl font-extrabold leading-none">--</span>
-                                <span id="aqi-chip"
-                                    class="px-2 py-1 rounded-full text-xs font-semibold bg-white/10 border border-white/20">—</span>
+                <!-- Bottom Info -->
+                <div class="mt-4 flex items-center justify-between text-xs text-white/70">
+                    <div class="flex items-center space-x-4">
+                        <span>💧 <span id="wx-hum-compact">—%</span></span>
+                        <span>☀️ UV <span id="wx-uv-compact">—</span></span>
+                    </div>
+                    <span class="flex items-center">
+                        Tap untuk detail lengkap
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </button>
+
+    {{-- =========================
+         WEATHER DETAIL MODAL (JAKI-STYLE PREMIUM)
+         ========================= --}}
+    <div x-data="{ open: false }" @open-weather-modal.window="open = true" @keydown.escape.window="open = false"
+        x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" @click="open = false" x-transition.opacity></div>
+
+        <!-- Modal -->
+        <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 translate-y-2 scale-95">
+
+            <!-- Header -->
+            <div class="bg-purple-600 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-base font-bold text-white flex items-center">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                    Informasi Cuaca & Kualitas Udara
+                </h3>
+                <button type="button" class="p-2 hover:bg-white/10 rounded-lg transition-colors" @click="open = false">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6 bg-white">
+                <!-- Loading State -->
+                <div id="wx-modal-loading" class="flex items-center justify-center py-12 text-gray-500">
+                    <svg class="animate-spin h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" stroke-width="4" class="opacity-25"></circle>
+                        <path class="opacity-75" stroke-width="4" d="M4 12a8 8 0 018-8"></path>
+                    </svg>
+                    Memuat data...
+                </div>
+
+                <!-- Detail Content -->
+                <div id="wx-modal-content" class="hidden space-y-4">
+                    <!-- Current Weather Card -->
+                    <div class="bg-gray-100 rounded-3xl p-6">
+                        <div class="flex items-center text-gray-700 text-sm font-medium mb-6">
+                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                            </svg>
+                            <span>Kondisi Cuaca Saat Ini</span>
+                        </div>
+
+                        <div class="flex items-start justify-between mb-6">
+                            <div class="flex-1">
+                                <div class="flex items-baseline mb-2">
+                                    <span id="wx-temp-modal"
+                                        class="text-7xl font-black text-gray-900 leading-none tracking-tighter">--</span>
+                                    <span class="text-3xl font-bold text-gray-700 ml-1">°C</span>
+                                </div>
+                                <p id="wx-desc-modal" class="text-gray-700 text-base font-medium">—</p>
                             </div>
-                            <div class="mt-3 flex items-center space-x-2 text-sm">
-                                <span class="text-white/80">Dominan:</span>
-                                <span id="aqi-dominant" class="font-semibold">—</span>
+                            <div class="text-right">
+                                <div id="wx-icon-modal" class="text-8xl mb-2">⛅</div>
+                                <p id="wx-feels-modal" class="text-sm text-gray-600 font-medium">Terasa: —°C</p>
                             </div>
                         </div>
-                        <div class="hidden lg:flex items-center">
-                            <span class="h-3 w-3 rounded-full ring-4 ring-white/30" id="aqi-dot"
-                                style="background:#9ca3af"></span>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-white rounded-2xl p-4">
+                                <p class="text-sm text-gray-600 mb-1">Kelembapan</p>
+                                <p id="wx-hum-modal" class="text-3xl font-black text-gray-900">—%</p>
+                            </div>
+                            <div class="bg-white rounded-2xl p-4">
+                                <p class="text-sm text-gray-600 mb-1">Indeks UV</p>
+                                <p id="wx-uv-modal" class="text-3xl font-black text-gray-900">—</p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mt-5">
-                        <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div id="aqi-bar" class="h-2 w-0 rounded-full transition-all duration-500"
-                                style="background:linear-gradient(90deg,#22c55e,#eab308,#f97316,#ef4444,#8b5cf6,#7f1d1d);">
+                    <!-- Air Quality Card -->
+                    <div class="bg-green-100 rounded-3xl p-6">
+                        <div class="flex items-center text-gray-700 text-sm font-medium mb-6">
+                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Kualitas Udara (AQI)</span>
+                        </div>
+
+                        <div class="flex items-start justify-between mb-5">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span id="aqi-value-modal"
+                                        class="text-7xl font-black text-gray-900 leading-none tracking-tighter">--</span>
+                                    <span id="aqi-chip-modal"
+                                        class="px-4 py-2 rounded-full text-sm font-bold bg-yellow-400 text-gray-900">—</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-sm text-gray-700">
+                                    <span>Polutan Dominan:</span>
+                                    <span id="aqi-dominant-modal" class="font-bold text-gray-900">—</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center pt-3">
+                                <span class="h-5 w-5 rounded-full ring-4 ring-white shadow-md" id="aqi-dot-modal"
+                                    style="background:#9ca3af"></span>
                             </div>
                         </div>
-                        <div class="flex justify-between text-[10px] opacity-80 mt-1">
-                            <span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>300+</span>
+
+                        <!-- AQI Bar -->
+                        <div class="mt-6">
+                            <div class="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                                <div id="aqi-bar-modal" class="h-2 w-0 rounded-full transition-all duration-500"
+                                    style="background:linear-gradient(90deg,#22c55e,#eab308,#f97316,#ef4444,#8b5cf6,#7f1d1d);">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-6 gap-0.5 mt-3 text-[10px] text-gray-600 font-medium">
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">0</div>
+                                    <div>Baik</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">50</div>
+                                    <div>Sedang</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">100</div>
+                                    <div>Tidak<br>Sehat</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">150</div>
+                                    <div>Sangat<br>Tidak<br>Sehat</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">200</div>
+                                    <div>Berbahaya</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="font-bold text-gray-900 mb-0.5">300+</div>
+                                    <div>Bahaya</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -630,19 +794,36 @@
 
   // ==== helpers ====
   const $ = id => document.getElementById(id);
+
+  // UI Elements (Compact + Modal)
   const ui = {
-    load: $('wx-loading'), content: $('wx-content'),
-    temp: $('wx-temp'), desc: $('wx-desc'), icon: $('wx-icon'),
-    feels: $('wx-feels'), hum: $('wx-hum'), uv: $('wx-uv'),
-    aqi: $('aqi-value'), aqiChip: $('aqi-chip'), aqiDom: $('aqi-dominant'),
-    aqiBar: $('aqi-bar'), aqiDot: $('aqi-dot'),
-    refresh: $('wx-refresh')
+    // Compact card
+    loadCompact: $('wx-loading-compact'),
+    contentCompact: $('wx-content-compact'),
+    tempCompact: $('wx-temp-compact'),
+    descCompact: $('wx-desc-compact'),
+    iconCompact: $('wx-icon-compact'),
+    feelsCompact: $('wx-feels-compact'),
+    humCompact: $('wx-hum-compact'),
+    uvCompact: $('wx-uv-compact'),
+    aqiCompact: $('aqi-value-compact'),
+
+    // Modal
+    loadModal: $('wx-modal-loading'),
+    contentModal: $('wx-modal-content'),
+    tempModal: $('wx-temp-modal'),
+    descModal: $('wx-desc-modal'),
+    iconModal: $('wx-icon-modal'),
+    feelsModal: $('wx-feels-modal'),
+    humModal: $('wx-hum-modal'),
+    uvModal: $('wx-uv-modal'),
+    aqiModal: $('aqi-value-modal'),
+    aqiChipModal: $('aqi-chip-modal'),
+    aqiDomModal: $('aqi-dominant-modal'),
+    aqiBarModal: $('aqi-bar-modal'),
+    aqiDotModal: $('aqi-dot-modal')
   };
 
-  const fmtTime = ts => {
-    try { return new Intl.DateTimeFormat('id-ID',{hour:'2-digit',minute:'2-digit'}).format(new Date(ts)); }
-    catch { return '—'; }
-  };
   const icon = t => {
     t = (t||'').toLowerCase();
     if (t.includes('rain')||t.includes('hujan')) return '🌧️';
@@ -653,8 +834,19 @@
     if (t.includes('sun')||t.includes('clear')||t.includes('cerah')) return '☀️';
     return '⛅';
   };
+
   const aqiColor = (v) => v==null?'#9ca3af':
     v<=50?'#22c55e':v<=100?'#eab308':v<=150?'#f97316':v<=200?'#ef4444':v<=300?'#8b5cf6':'#7f1d1d';
+
+  const aqiLabel = (v) => {
+    if (v==null) return '—';
+    if (v<=50) return 'Baik';
+    if (v<=100) return 'Sedang';
+    if (v<=150) return 'Tidak Sehat';
+    if (v<=200) return 'Sangat Tidak Sehat';
+    if (v<=300) return 'Berbahaya';
+    return 'Bahaya';
+  };
 
   // ==== API via backend ====
   async function getWeather(lat,lng){
@@ -662,6 +854,7 @@
     if(!r.ok) throw new Error('weather '+r.status);
     return r.json();
   }
+
   async function getAir(lat,lng){
     const r = await fetch(`/api/wx/air?lat=${lat}&lng=${lng}`, { headers:{Accept:'application/json'} });
     if(!r.ok) throw new Error('air '+r.status);
@@ -671,43 +864,54 @@
   // ==== renderers ====
   function renderWeather(data){
     const c = data.currentConditions || {};
-
     const temp  = (c.temperature?.degrees ?? c.temperature) ?? null;
     const feels = (c.feelsLikeTemperature?.degrees ?? c.temperatureApparent) ?? null;
-
     let hum = (c.relativeHumidity ?? c.humidity ?? null);
-    if (hum!=null && hum<=1) hum = hum*100; // 0–1 → %
-
+    if (hum!=null && hum<=1) hum = hum*100;
     const uv = c.uvIndex ?? null;
-    const txt = c.weatherCondition?.description?.text
-             ?? c.weatherCondition?.text
-             ?? c.weatherText
-             ?? 'Kondisi terkini';
+    const txt = c.weatherCondition?.description?.text ?? c.weatherCondition?.text ?? c.weatherText ?? 'Kondisi terkini';
+    const weatherIcon = icon(txt);
 
-    ui.temp.textContent  = temp!=null?Math.round(temp):'—';
-    ui.desc.textContent  = txt;
-    ui.icon.textContent  = icon(txt);
-    ui.feels.textContent = `Terasa: ${feels!=null?Math.round(feels):'—'}°C`;
-    ui.hum.textContent   = hum!=null?`${Math.round(hum)}%`:'—';
-    ui.uv.textContent    = uv ?? '—';
+    // Update Compact Card
+    if(ui.tempCompact) ui.tempCompact.textContent = temp!=null?Math.round(temp):'—';
+    if(ui.descCompact) ui.descCompact.textContent = txt;
+    if(ui.iconCompact) ui.iconCompact.textContent = weatherIcon;
+    if(ui.feelsCompact) ui.feelsCompact.textContent = feels!=null?`${Math.round(feels)}°C`:'—°C';
+    if(ui.humCompact) ui.humCompact.textContent = hum!=null?`${Math.round(hum)}%`:'—%';
+    if(ui.uvCompact) ui.uvCompact.textContent = uv ?? '—';
+
+    // Update Modal
+    if(ui.tempModal) ui.tempModal.textContent = temp!=null?Math.round(temp):'—';
+    if(ui.descModal) ui.descModal.textContent = txt;
+    if(ui.iconModal) ui.iconModal.textContent = weatherIcon;
+    if(ui.feelsModal) ui.feelsModal.textContent = `Terasa: ${feels!=null?Math.round(feels):'—'}°C`;
+    if(ui.humModal) ui.humModal.textContent = hum!=null?`${Math.round(hum)}%`:'—%';
+    if(ui.uvModal) ui.uvModal.textContent = uv ?? '—';
   }
 
   function renderAir(data){
     const idx = (data.indexes && data.indexes[0]) || {};
     const aqi = idx.aqi ?? idx.value ?? null;
-    const label = idx.category ?? idx.displayName ?? '—';
+    const label = aqiLabel(aqi);
     const dom = idx.dominantPollutant ?? '—';
-
-    ui.aqi.textContent = aqi ?? '—';
-    ui.aqiChip.textContent = label;
     const color = aqiColor(aqi);
-    ui.aqiChip.style.backgroundColor = color + '33';
-    ui.aqiChip.style.borderColor = color + '66';
-    ui.aqiDom.textContent = dom;
+
+    // Update Compact Card
+    if(ui.aqiCompact) ui.aqiCompact.textContent = aqi ?? '—';
+
+    // Update Modal
+    if(ui.aqiModal) ui.aqiModal.textContent = aqi ?? '—';
+    if(ui.aqiChipModal) {
+      ui.aqiChipModal.textContent = label;
+      ui.aqiChipModal.style.backgroundColor = color + '33';
+      ui.aqiChipModal.style.borderColor = color + '66';
+      ui.aqiChipModal.style.color = color;
+    }
+    if(ui.aqiDomModal) ui.aqiDomModal.textContent = dom;
 
     const pct = Math.max(0, Math.min(1, (aqi ?? 0) / 300));
-    ui.aqiBar.style.width = `${pct*100}%`;
-    ui.aqiDot.style.backgroundColor = color;
+    if(ui.aqiBarModal) ui.aqiBarModal.style.width = `${pct*100}%`;
+    if(ui.aqiDotModal) ui.aqiDotModal.style.backgroundColor = color;
   }
 
   // ==== geolokasi device ====
@@ -723,21 +927,38 @@
   }
 
   async function loadAll(coord){
-    ui.load.classList.remove('hidden');
-    ui.content.classList.add('hidden');
+    // Show loading states
+    if(ui.loadCompact) ui.loadCompact.classList.remove('hidden');
+    if(ui.contentCompact) ui.contentCompact.classList.add('hidden');
+    if(ui.loadModal) ui.loadModal.classList.remove('hidden');
+    if(ui.contentModal) ui.contentModal.classList.add('hidden');
+
     try{
-      const [w,a] = await Promise.all([ getWeather(coord.lat,coord.lng), getAir(coord.lat,coord.lng) ]);
-      renderWeather(w); renderAir(a);
-      ui.load.classList.add('hidden');
-      ui.content.classList.remove('hidden');
+      const [w,a] = await Promise.all([
+        getWeather(coord.lat,coord.lng),
+        getAir(coord.lat,coord.lng)
+      ]);
+
+      renderWeather(w);
+      renderAir(a);
+
+      // Hide loading, show content
+      if(ui.loadCompact) ui.loadCompact.classList.add('hidden');
+      if(ui.contentCompact) ui.contentCompact.classList.remove('hidden');
+      if(ui.loadModal) ui.loadModal.classList.add('hidden');
+      if(ui.contentModal) ui.contentModal.classList.remove('hidden');
     }catch(e){
       console.error(e);
-      ui.load.textContent = 'Gagal memuat data.';
+      if(ui.loadCompact) ui.loadCompact.innerHTML = '<span class="text-sm text-white/80">Gagal memuat data cuaca</span>';
+      if(ui.loadModal) ui.loadModal.innerHTML = '<span class="text-sm text-gray-500">Gagal memuat data cuaca</span>';
     }
   }
 
-  ui.refresh?.addEventListener('click', async () => { const c=await locate(); loadAll(c); });
-  (async () => { const c=await locate(); loadAll(c); })();
+  // Init on page load
+  (async () => {
+    const c = await locate();
+    loadAll(c);
+  })();
 })();
 </script>
 @endpush
