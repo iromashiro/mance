@@ -9,6 +9,7 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\TourController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ApplicationController as AdminApplicationController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
@@ -57,6 +58,9 @@ Route::middleware('auth')->group(function () {
     // News
     Route::get('/news', [NewsController::class, 'index'])->name('news.index');
     Route::get('/news/{id}', [NewsController::class, 'show'])->name('news.show');
+    // Tours (Wisata)
+    Route::get('/tours', [TourController::class, 'index'])->name('tours.index');
+    Route::get('/tours/{id}', [TourController::class, 'show'])->name('tours.show');
 
     // Complaints (Pengaduan)
     Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');
@@ -120,6 +124,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
 // API Routes for AJAX/Tracking
 Route::prefix('api')->middleware('auth')->group(function () {
+    // Fallback untuk path ikon lama dari manifest (hindari 404)
+    // akan mengembalikan mance-logo.png untuk semua /images/icons/*.png
+    Route::get('/images/icons/{file}', function ($file) {
+        $path = public_path('mance-logo.png');
+        if (!file_exists($path)) {
+            abort(404);
+        }
+        return response()->file($path, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=604800',
+        ]);
+    })->where('file', '.*');
     Route::post('/applications/{application}/track', [ApplicationController::class, 'track']);
     Route::post('/news/{news}/view', [NewsController::class, 'trackView']);
 });

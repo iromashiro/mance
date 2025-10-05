@@ -13,72 +13,29 @@
   "categories": ["government", "utilities", "news"],
   "icons": [
     {
-      "src": "/images/icons/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/images/icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/images/icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/images/icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/images/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/images/icons/icon-192x192.png",
+      "src": "/mance-logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icons/icon-384x384.png",
-      "sizes": "384x384",
+      "src": "/mance-logo.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/favicon.ico",
+      "sizes": "48x48 64x64 96x96 128x128 256x256",
+      "type": "image/x-icon"
     }
   ],
   "screenshots": [
     {
-      "src": "/images/screenshots/home.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "label": "Halaman Utama"
-    },
-    {
-      "src": "/images/screenshots/services.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "label": "Layanan Publik"
-    },
-    {
-      "src": "/images/screenshots/complaint.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "label": "Pengaduan Masyarakat"
+      "src": "/banner.webp",
+      "sizes": "1200x300",
+      "type": "image/webp",
+      "label": "Banner"
     }
   ],
   "shortcuts": [
@@ -89,7 +46,7 @@
       "url": "/complaints/create",
       "icons": [
         {
-          "src": "/images/icons/complaint-96x96.png",
+          "src": "/mance-logo.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -102,7 +59,7 @@
       "url": "/applications",
       "icons": [
         {
-          "src": "/images/icons/services-96x96.png",
+          "src": "/mance-logo.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -115,7 +72,7 @@
       "url": "/news",
       "icons": [
         {
-          "src": "/images/icons/news-96x96.png",
+          "src": "/mance-logo.png",
           "sizes": "96x96",
           "type": "image/png"
         }
