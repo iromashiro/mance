@@ -56,7 +56,7 @@ Route::middleware('auth')->group(function () {
 
     // News
     Route::get('/news', [NewsController::class, 'index'])->name('news.index');
-    Route::get('/news/{news}', [NewsController::class, 'show'])->name('news.show');
+    Route::get('/news/{id}', [NewsController::class, 'show'])->name('news.show');
 
     // Complaints (Pengaduan)
     Route::get('/complaints', [ComplaintController::class, 'index'])->name('complaints.index');

@@ -50,9 +50,11 @@
 
     {{-- Magazine Layout Grid --}}
     @php
-    $featuredNews = $news->first();
-    $secondaryNews = $news->skip(1)->take(2);
-    $otherNews = $news->skip(3);
+    // Gunakan featured dari controller jika tersedia; fallback ke item pertama
+    $featuredNews = isset($featuredNews) ? $featuredNews : $news->first();
+    // Buang featured dari daftar sekunder dan lainnya agar tidak duplikat
+    $secondaryNews = $news->filter(fn($n) => ($n->id ?? null) !== ($featuredNews->id ?? null))->take(2);
+    $otherNews = $news->filter(fn($n) => ($n->id ?? null) !== ($featuredNews->id ?? null))->skip(2);
     @endphp
 
     @if($featuredNews)
@@ -69,7 +71,8 @@
                 <!-- Image Section -->
                 <div class="relative h-96 lg:h-auto overflow-hidden">
                     @if($featuredNews->image_url)
-                    <img src="{{ Storage::url($featuredNews->image_url) }}" alt="{{ $featuredNews->title }}"
+                    <img src="{{ \Illuminate\Support\Str::startsWith($featuredNews->image_url, ['http://','https://']) ? $featuredNews->image_url : Storage::url($featuredNews->image_url) }}"
+                        alt="{{ $featuredNews->title }}"
                         class="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500">
                     @else
                     <div
@@ -106,9 +109,9 @@
                         <div class="flex items-center space-x-4 text-sm text-gray-500 mb-4">
                             <span class="flex items-center">
                                 <img class="h-6 w-6 rounded-full mr-2"
-                                    src="https://ui-avatars.com/api/?name={{ urlencode($featuredNews->author->name) }}&background=7950f2&color=fff&size=32"
-                                    alt="{{ $featuredNews->author->name }}">
-                                {{ $featuredNews->author->name }}
+                                    src="https://ui-avatars.com/api/?name={{ urlencode(data_get($featuredNews, 'author.name', 'Admin Muara Enim')) }}&background=7950f2&color=fff&size=32"
+                                    alt="{{ data_get($featuredNews, 'author.name', 'Admin Muara Enim') }}">
+                                {{ data_get($featuredNews, 'author.name', 'Admin Muara Enim') }}
                             </span>
                             <span>•</span>
                             <span>{{ $featuredNews->published_at->format('d M Y') }}</span>
@@ -119,7 +122,7 @@
                         <!-- Title -->
                         <h2
                             class="text-3xl lg:text-4xl font-heading font-bold text-gray-900 mb-4 group-hover:text-primary-600 transition-colors">
-                            <a href="{{ route('news.show', $featuredNews) }}">
+                            <a href="{{ route('news.show', $featuredNews->id) }}">
                                 {{ $featuredNews->title }}
                             </a>
                         </h2>
@@ -141,7 +144,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
-                                {{ number_format($featuredNews->views()->count()) }}
+                                {{ number_format(method_exists($featuredNews, 'views') ? $featuredNews->views()->count() : ($featuredNews->views ?? 0)) }}
                             </span>
                             <span class="flex items-center">
                                 <svg class="mr-1.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor"
@@ -152,7 +155,7 @@
                                 {{ rand(10, 100) }}
                             </span>
                         </div>
-                        <a href="{{ route('news.show', $featuredNews) }}"
+                        <a href="{{ route('news.show', $featuredNews->id) }}"
                             class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
                             Baca
                             <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +183,8 @@
                 <!-- Image -->
                 <div class="relative h-64 overflow-hidden">
                     @if($item->image_url)
-                    <img src="{{ Storage::url($item->image_url) }}" alt="{{ $item->title }}"
+                    <img src="{{ \Illuminate\Support\Str::startsWith($item->image_url, ['http://','https://']) ? $item->image_url : Storage::url($item->image_url) }}"
+                        alt="{{ $item->title }}"
                         class="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500">
                     @else
                     <div
@@ -208,9 +212,9 @@
                     <div class="flex items-center space-x-3 text-xs text-gray-500 mb-3">
                         <span class="flex items-center">
                             <img class="h-5 w-5 rounded-full mr-1.5"
-                                src="https://ui-avatars.com/api/?name={{ urlencode($item->author->name) }}&background=7950f2&color=fff&size=32"
-                                alt="{{ $item->author }}">
-                            {{ $item->author->name }}
+                                src="https://ui-avatars.com/api/?name={{ urlencode(data_get($item, 'author.name', 'Admin Muara Enim')) }}&background=7950f2&color=fff&size=32"
+                                alt="{{ data_get($item, 'author.name', 'Admin Muara Enim') }}">
+                            {{ data_get($item, 'author.name', 'Admin Muara Enim') }}
                         </span>
                         <span>•</span>
                         <span>{{ $item->published_at->format('d M Y') }}</span>
@@ -218,7 +222,7 @@
 
                     <!-- Title -->
                     <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
-                        <a href="{{ route('news.show', $item) }}">
+                        <a href="{{ route('news.show', $item->id) }}">
                             {{ $item->title }}
                         </a>
                     </h3>
@@ -238,11 +242,11 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
-                                {{ number_format($item->views()->count()) }}
+                                {{ number_format(method_exists($item, 'views') ? $item->views()->count() : ($item->views ?? 0)) }}
                             </span>
                             <span>3 min read</span>
                         </div>
-                        <a href="{{ route('news.show', $item) }}"
+                        <a href="{{ route('news.show', $item->id) }}"
                             class="text-primary-600 hover:text-primary-700 font-medium flex items-center group/link">
                             <span>Baca</span>
                             <svg class="ml-1 h-4 w-4 group-hover/link:translate-x-1 transition-transform" fill="none"
@@ -276,7 +280,8 @@
                         <!-- Image -->
                         <div class="sm:flex-shrink-0 sm:w-48 h-48 sm:h-auto relative overflow-hidden">
                             @if($item->image_url)
-                            <img src="{{ Storage::url($item->image_url) }}" alt="{{ $item->title }}"
+                            <img src="{{ \Illuminate\Support\Str::startsWith($item->image_url, ['http://','https://']) ? $item->image_url : Storage::url($item->image_url) }}"
+                                alt="{{ $item->title }}"
                                 class="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500">
                             @else
                             <div
@@ -302,7 +307,7 @@
 
                             <h3
                                 class="text-lg font-semibold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
-                                <a href="{{ route('news.show', $item) }}">
+                                <a href="{{ route('news.show', $item->id) }}">
                                     {{ $item->title }}
                                 </a>
                             </h3>
@@ -314,11 +319,11 @@
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center text-xs text-gray-500">
                                     <img class="h-5 w-5 rounded-full mr-2"
-                                        src="https://ui-avatars.com/api/?name={{ urlencode($item->author->name) }}&background=7950f2&color=fff&size=32"
-                                        alt="{{ $item->author->name }}">
-                                    <span>{{ $item->author->name }}</span>
+                                        src="https://ui-avatars.com/api/?name={{ urlencode(data_get($item, 'author.name', 'Admin Muara Enim')) }}&background=7950f2&color=fff&size=32"
+                                        alt="{{ data_get($item, 'author.name', 'Admin Muara Enim') }}">
+                                    <span>{{ data_get($item, 'author.name', 'Admin Muara Enim') }}</span>
                                 </div>
-                                <a href="{{ route('news.show', $item) }}"
+                                <a href="{{ route('news.show', $item->id) }}"
                                     class="text-primary-600 hover:text-primary-700 text-sm font-medium">
                                     Baca →
                                 </a>

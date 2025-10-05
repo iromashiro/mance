@@ -514,59 +514,10 @@
             </div>
         </div>
         @endif
-
-        {{-- Recommended News --}}
-        @if($recommendedNews->isNotEmpty())
-        <div
-            class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-xl overflow-hidden border border-blue-100">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg mr-2">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z">
-                                </path>
-                            </svg>
-                        </span>
-                        Berita Untuk Anda
-                    </h3>
-                </div>
-                <div class="space-y-3">
-                    @foreach($recommendedNews as $news)
-                    <a href="{{ route('news.show', $news) }}"
-                        class="group block bg-white rounded-xl p-3 hover:shadow-lg transition-all hover:-translate-y-0.5">
-                        <div class="flex space-x-3">
-                            @if($news->thumbnail_path)
-                            <img src="{{ Storage::url($news->thumbnail_path) }}" alt="{{ $news->title }}"
-                                class="w-16 h-16 object-cover rounded-lg">
-                            @else
-                            <div
-                                class="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15">
-                                    </path>
-                                </svg>
-                            </div>
-                            @endif
-                            <div class="flex-1 min-w-0">
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 group-hover:text-blue-700 line-clamp-2 transition-colors">
-                                    {{ $news->title }}</h4>
-                                <p class="text-xs text-gray-500 mt-1">{{ $news->published_at->diffForHumans() }}</p>
-                            </div>
-                        </div>
-                    </a>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-        @endif
     </div>
 </div>
 @endif
+
 
 {{-- =========================
          RECENT SECTIONS
@@ -676,10 +627,6 @@
                 </a>
             </div>
 
-            @php
-            $recentNews = \App\Models\News::published()->latest('published_at')->take(3)->get();
-            @endphp
-
             @if($recentNews->count() > 0)
             <div class="space-y-4">
                 @foreach($recentNews as $news)
@@ -687,7 +634,8 @@
                     class="group block rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-primary-50 p-3 -m-3 transition-all">
                     <div class="flex space-x-4">
                         @if($news->image_url)
-                        <img src="{{ Storage::url($news->image_url) }}" alt="{{ $news->title }}"
+                        <img src="{{ \Illuminate\Support\Str::startsWith($news->image_url, ['http://','https://']) ? $news->image_url : Storage::url($news->image_url) }}"
+                            alt="{{ $news->title }}"
                             class="h-20 w-20 object-cover rounded-xl shadow-md group-hover:shadow-lg transition-shadow">
                         @else
                         <div
@@ -718,7 +666,8 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
-                                    {{ $news->views()->count() }} views
+                                    {{ method_exists($news, 'views') ? $news->views()->count() : (int) ($news->views ?? 0) }}
+                                    views
                                 </span>
                             </div>
                         </div>

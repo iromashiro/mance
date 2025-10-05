@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // External Desa API (Berita)
+    'desa' => [
+        'url'        => env('DESA_API_URL', 'https://desa-api.muaraenimkab.go.id/'),
+        'email'      => env('DESA_API_EMAIL'),
+        'password'   => env('DESA_API_PASSWORD'),
+        'village_id' => env('DESA_API_VILLAGE_ID'),
+    ],
+
 ];

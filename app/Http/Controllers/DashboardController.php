@@ -8,13 +8,15 @@ use App\Models\Complaint;
 use App\Models\Application;
 use App\Models\News;
 use App\Models\Notification;
+use App\Services\DesaApi;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
     /**
      * Display user dashboard
      */
-    public function index()
+    public function index(DesaApi $desa)
     {
         $user = Auth::user();
 
@@ -31,26 +33,43 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Get personalized news recommendations based on user category
-        $recommendedNews = News::published()
-            ->where('category', $user->category)
-            ->latest('published_at')
-            ->take(3)
-            ->get();
+        // === News via external API first, fallback ke DB lokal ===
+        $apiArticles = collect($desa->articles());
 
-        // If no news for user category, get latest news instead
-        if ($recommendedNews->isEmpty()) {
+        if ($apiArticles->isNotEmpty()) {
+            // Latest for dashboard (3 items)
+            $recentNews = $apiArticles->take(3)->values();
+
+            // Recommended (ambil 3 teratas juga - tanpa kategori user karena API tidak expose)
+            $recommendedNews = $apiArticles->take(3)->values();
+
+            // Latest general (5)
+            $latestNews = $apiArticles->take(5)->values();
+        } else {
+            // Fallback ke lokal
             $recommendedNews = News::published()
+                ->where('category', $user->category)
+                ->latest('published_at')
+                ->take(3)
+                ->get();
+
+            if ($recommendedNews->isEmpty()) {
+                $recommendedNews = News::published()
+                    ->latest('published_at')
+                    ->take(3)
+                    ->get();
+            }
+
+            $latestNews = News::published()
+                ->latest('published_at')
+                ->take(5)
+                ->get();
+
+            $recentNews = News::published()
                 ->latest('published_at')
                 ->take(3)
                 ->get();
         }
-
-        // Get latest news (general)
-        $latestNews = News::published()
-            ->latest('published_at')
-            ->take(5)
-            ->get();
 
         // Get favorite applications
         $favoriteApps = $user->favorites()
@@ -86,7 +105,8 @@ class DashboardController extends Controller
             'latestNews',
             'recommendedNews',
             'favoriteApps',
-            'recommendedApps'
+            'recommendedApps',
+            'recentNews'
         ));
     }
 }

@@ -18,34 +18,37 @@
     <!-- Article -->
     <article class="bg-white rounded-lg shadow-lg overflow-hidden">
         <!-- Featured Image -->
-        @if($news->image_url)
-        <img src="{{ Storage::url($news->image_url) }}" alt="{{ $news->title }}" class="w-full h-96 object-cover">
+        @if(!empty($news->image_url))
+        <img src="{{ \Illuminate\Support\Str::startsWith($news->image_url, ['http://','https://']) ? $news->image_url : Storage::url($news->image_url) }}"
+            alt="{{ $news->title }}" class="w-full h-96 object-cover">
         @endif
 
         <div class="p-6 lg:p-8">
             <!-- Meta Info -->
             <div class="flex flex-wrap items-center text-sm text-gray-500 mb-4">
+                @if(!empty($news->published_at))
                 <span class="flex items-center mr-4">
                     <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                         </path>
                     </svg>
-                    {{ $news->published_at->format('d F Y') }}
+                    {{ \Illuminate\Support\Carbon::parse($news->published_at)->locale('id')->translatedFormat('d F Y') }}
                 </span>
                 <span class="flex items-center mr-4">
                     <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    {{ $news->published_at->format('H:i') }} WIB
+                    {{ \Illuminate\Support\Carbon::parse($news->published_at)->format('H:i') }} WIB
                 </span>
+                @endif
                 <span class="flex items-center mr-4">
                     <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                     </svg>
-                    {{ $news->author->name }}
+                    {{ data_get($news, 'author.name', 'Admin Muara Enim') }}
                 </span>
                 <span class="flex items-center">
                     <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +58,8 @@
                             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
                         </path>
                     </svg>
-                    {{ $news->views()->count() }} kali dibaca
+                    {{ method_exists($news, 'views') ? $news->views()->count() : (int) ($news->views ?? 0) }} kali
+                    dibaca
                 </span>
             </div>
 
@@ -63,9 +67,11 @@
             <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ $news->title }}</h1>
 
             <!-- Excerpt -->
+            @if(!empty($news->excerpt))
             <p class="text-lg text-gray-600 leading-relaxed mb-6 font-medium">
                 {{ $news->excerpt }}
             </p>
+            @endif
 
             <!-- Content -->
             <div class="prose prose-lg max-w-none text-gray-700">
@@ -73,7 +79,7 @@
             </div>
 
             <!-- Tags/Categories if available -->
-            @if($news->tags)
+            @if(!empty($news->tags))
             <div class="mt-8 pt-6 border-t border-gray-200">
                 <div class="flex flex-wrap gap-2">
                     @foreach(explode(',', $news->tags) as $tag)
@@ -123,39 +129,34 @@
         </div>
     </article>
 
-    <!-- Related News -->
-    @php
-    $relatedNews = \App\Models\News::published()
-    ->where('id', '!=', $news->id)
-    ->latest('published_at')
-    ->take(3)
-    ->get();
-    @endphp
-
-    @if($relatedNews->count() > 0)
+    {{-- Related News --}}
+    @if(!empty($relatedNews) && count($relatedNews) > 0)
     <div class="mt-12">
         <h2 class="text-xl font-bold text-gray-900 mb-6">Berita Terkait</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach($relatedNews as $related)
             <div class="bg-white rounded-lg shadow hover:shadow-lg transition">
-                @if($related->image_url)
-                <a href="{{ route('news.show', $related) }}">
-                    <img src="{{ Storage::url($related->image_url) }}" alt="{{ $related->title }}"
-                        class="h-40 w-full object-cover rounded-t-lg">
+                @if(!empty($related->image_url))
+                <a href="{{ route('news.show', is_object($related) ? $related->id : $related['id']) }}">
+                    <img src="{{ \Illuminate\Support\Str::startsWith($related->image_url, ['http://','https://']) ? $related->image_url : Storage::url($related->image_url) }}"
+                        alt="{{ $related->title }}" class="h-40 w-full object-cover rounded-t-lg">
                 </a>
                 @endif
                 <div class="p-4">
                     <h3 class="font-semibold text-gray-900 mb-2">
-                        <a href="{{ route('news.show', $related) }}" class="hover:text-primary-600">
-                            {{ Str::limit($related->title, 50) }}
+                        <a href="{{ route('news.show', is_object($related) ? $related->id : $related['id']) }}"
+                            class="hover:text-primary-600">
+                            {{ \Illuminate\Support\Str::limit($related->title, 50) }}
                         </a>
                     </h3>
                     <p class="text-sm text-gray-600 mb-2">
-                        {{ Str::limit($related->excerpt, 80) }}
+                        {{ \Illuminate\Support\Str::limit($related->excerpt ?? '', 80) }}
                     </p>
+                    @if(!empty($related->published_at))
                     <p class="text-xs text-gray-500">
-                        {{ $related->published_at->format('d M Y') }}
+                        {{ \Illuminate\Support\Carbon::parse($related->published_at)->format('d M Y') }}
                     </p>
+                    @endif
                 </div>
             </div>
             @endforeach
@@ -164,9 +165,10 @@
     @endif
 </div>
 
+@if(empty($isExternal))
 @push('scripts')
 <script>
-    // Track news view
+    // Track news view (hanya untuk berita lokal)
 document.addEventListener('DOMContentLoaded', function() {
     fetch(`/api/news/{{ $news->id }}/view`, {
         method: 'POST',
@@ -177,5 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+@endif
 
 @endsection
