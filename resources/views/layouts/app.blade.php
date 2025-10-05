@@ -46,7 +46,7 @@
     @stack('styles')
 </head>
 
-<body class="h-full font-sans bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+<body class="overflow-x-hidden h-full font-sans bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
     {{-- Global Page Loader --}}
     {{-- Splash Screen (sekali per device) --}}
     @include('components.splash')
