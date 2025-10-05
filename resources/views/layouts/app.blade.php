@@ -108,10 +108,6 @@
                                 Berita
                             </a>
                         </nav>
-                        <a href="{{ route('tours.index') }}"
-                            class="@if(request()->routeIs('tours.*')) nav-item-active @else nav-item @endif">
-                            Wisata
-                        </a>
                     </div>
 
                     <!-- Right Section -->
