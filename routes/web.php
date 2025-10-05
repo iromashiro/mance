@@ -25,6 +25,13 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
+Route::get('/aruna', function () {
+    if (auth()->check()) {
+        return view('aruna');
+    }
+    return redirect()->route('login');
+})->name('aruna.ai');
+
 // Authentication routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('login');

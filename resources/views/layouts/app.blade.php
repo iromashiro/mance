@@ -384,16 +384,19 @@
                     @endif
                 </a>
 
-                <a href="{{ route('complaints.create') }}"
+                {{-- TOMBOL TENGAH: ARUNA AI --}}
+                <a href="{{route('aruna.ai')}}" {{-- ganti ke rute chat AI kamu --}}
                     class="group flex flex-col items-center justify-center relative">
-                    <div
-                        class="bg-gradient-to-r from-primary-500 to-accent-500 p-3 rounded-xl shadow-lg transform group-hover:scale-110 transition-all -mt-8">
-                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                            </path>
-                        </svg>
+                    <div class="relative -mt-8">
+                        {{-- glow/gradient biar konsisten dengan tombol lama --}}
+                        <div class="absolute -inset-2 bg-gradient-to-r from-blue-500 to-blue-700
+                                rounded-2xl blur-md opacity-70 group-hover:opacity-90 transition"></div>
+
+                        {{-- foto Aruna --}}
+                        <img src="{{ asset('aruna-ai.png') }}" alt="Aruna AI" class="relative h-14 w-14 sm:h-16 sm:w-16 rounded-2xl object-cover
+                                ring-4 ring-white shadow-xl group-hover:scale-110 transition-transform select-none" />
                     </div>
-                    <span class="text-xs font-medium text-gray-600 mt-1">Lapor</span>
+                    <span class="text-xs font-semibold text-gray-900 mt-1">Aruna AI</span>
                 </a>
 
                 <a href="{{ route('news.index') }}" class="group flex flex-col items-center justify-center relative">
