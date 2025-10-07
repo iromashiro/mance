@@ -14,6 +14,33 @@ use Illuminate\Support\Str;
 class ApplicationController extends Controller
 {
     /**
+     * Generate unique slug from application name.
+     *
+     * Slug dibuat permanen (tidak berubah saat update).
+     *
+     * @param string $name
+     * @param int|null $excludeId
+     * @return string
+     */
+    private function generateUniqueSlug(string $name, ?int $excludeId = null): string
+    {
+        $base = Str::slug($name);
+        $slug = $base !== '' ? $base : Str::random(8);
+        $original = $slug;
+        $i = 2;
+
+        while (
+            Application::where('slug', $slug)
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->exists()
+        ) {
+            $slug = "{$original}-{$i}";
+            $i++;
+        }
+
+        return $slug;
+    }
+    /**
      * Display listing of applications
      */
     public function index(Request $request)
@@ -67,6 +94,7 @@ class ApplicationController extends Controller
         ]);
 
         $data = $request->only(['name', 'description', 'url']);
+        $data['slug'] = $this->generateUniqueSlug($request->name);
         $data['is_active'] = $request->boolean('is_active', true);
 
         // Handle icon upload
