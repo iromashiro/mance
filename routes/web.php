@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\ComplaintController as AdminComplaintController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\VoiceProxyController;
 
 // Public routes
 Route::get('/', function () {
@@ -152,6 +153,10 @@ Route::prefix('api')->middleware('auth')->group(function () {
     })->where('file', '.*');
     Route::post('/applications/{application}/track', [ApplicationController::class, 'track']);
     Route::post('/news/{news}/view', [NewsController::class, 'trackView']);
+
+    // Voice proxy to avoid mobile CORS/tracker blocking
+    Route::get('/voice/token', [VoiceProxyController::class, 'token'])->name('voice.token');
+    Route::post('/voice/invite', [VoiceProxyController::class, 'invite'])->name('voice.invite');
 });
 
 // PWA routes

@@ -45,8 +45,16 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  const url = new URL(event.request.url);
+
   // Skip cross-origin requests
-  if (new URL(event.request.url).origin !== location.origin) {
+  if (url.origin !== location.origin) {
+    return;
+  }
+
+  // Bypass SW for realtime voice endpoints and telpon page
+  if (url.pathname.startsWith('/api/voice') || url.pathname.startsWith('/telpon')) {
+    // Let browser hit network directly, no caching/interception
     return;
   }
 
@@ -74,8 +82,8 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME)
             .then(cache => {
               // Don't cache API responses or auth pages
-              const url = event.request.url;
-              if (!url.includes('/api/') && !url.includes('/login') && !url.includes('/register')) {
+              const reqUrl = fetchRequest.url;
+              if (!reqUrl.includes('/api/') && !reqUrl.includes('/login') && !reqUrl.includes('/register')) {
                 cache.put(event.request, responseToCache);
               }
             });
@@ -84,10 +92,15 @@ self.addEventListener('fetch', event => {
         });
       })
       .catch(() => {
-        // Return offline page if fetch fails
-        if (event.request.headers.get('accept').includes('text/html')) {
+        const accept = event.request.headers.get('accept') || '';
+        if (accept.includes('text/html')) {
           return caches.match('/offline.html');
         }
+        // Return JSON error for non-HTML requests to avoid "Failed to fetch"
+        return new Response(JSON.stringify({ error: 'offline', message: 'Network unavailable' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
       })
   );
 });

@@ -159,8 +159,8 @@
             </button>
 
             <!-- Speaker Button -->
-            <button @click="toggleSpeaker()"
-                class="w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-xl"
+            <button @click="toggleSpeaker()
+                " class="w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-xl"
                 :class="speakerOn ? 'bg-white/30 backdrop-blur-md' : 'bg-white/20 backdrop-blur-md hover:bg-white/30'"
                 x-show="isConnected">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,16 +217,29 @@
                 this.callStatus = 'Menghubungkan...';
                 console.log('Starting call...');
 
-                // 1) Get token from server with user's name from database
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                // 1) Get token (proxy dulu → fallback direct bila gagal)
                 const q = new URLSearchParams();
                 q.set('identity', this.identity);
 
-                const tokenRes = await fetch(`https://voice.deltabhumi.co.id/getToken?${q.toString()}`);
-                if (!tokenRes.ok) throw new Error(`Token gagal: ${tokenRes.status}`);
-
-                const { token, room, url } = await tokenRes.json();
+                let token, room, url;
+                try {
+                    const tokenRes = await fetch(`{{ route('voice.token') }}?${q.toString()}`, {
+                        credentials: 'same-origin',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!tokenRes.ok) throw new Error(`Proxy token gagal: ${tokenRes.status}`);
+                    ({ token, room, url } = await tokenRes.json());
+                    console.log(`Token OK via proxy → room=${room}`);
+                } catch (err) {
+                    console.warn('Proxy token gagal, coba direct...', err);
+                    const tokenRes2 = await fetch(`https://voice.deltabhumi.co.id/getToken?${q.toString()}`);
+                    if (!tokenRes2.ok) throw new Error(`Token gagal: ${tokenRes2.status}`);
+                    ({ token, room, url } = await tokenRes2.json());
+                    console.log(`Token OK via direct → room=${room}`);
+                }
                 this.roomName = room;
-                console.log(`Token OK → room=${room}`);
 
                 // 2) Get microphone
                 console.log('Requesting microphone access...');
@@ -262,7 +275,8 @@
 
                 this.roomRef.on(RoomEvent.ParticipantConnected, (participant) => {
                     console.log(`${participant.identity} joined`);
-                    if (participant.identity.includes('aruna') || participant.identity.includes('agent')) {
+                    if (participant.identity?.toString().toLowerCase().includes('aruna')
+                        || participant.identity?.toString().toLowerCase().includes('agent')) {
                         this.callStatus = 'Aruna AI aktif';
                     }
                 });
@@ -272,8 +286,11 @@
                     if (track.kind === 'audio') {
                         const el = document.createElement('audio');
                         el.autoplay = true;
+                        el.playsInline = true; // iOS Safari
                         track.attach(el);
                         document.body.appendChild(el);
+                        // coba play, bila diblokir user gesture diperlukan
+                        el.play?.().catch(() => {});
                         this.isSpeaking = true;
                         setTimeout(() => this.isSpeaking = false, 2000);
                     }
@@ -296,13 +313,27 @@
                 });
                 console.log('Microphone published');
 
-                // 5) Invite Aruna
+                // 5) Invite Aruna (proxy dulu → fallback direct bila gagal)
                 console.log('Inviting Aruna AI...');
-                const inv = await fetch('https://voice.deltabhumi.co.id/invite', {
+                let inv = await fetch(`{{ route('voice.invite') }}`, {
                     method: 'POST',
-                    headers: {'Content-Type':'application/json'},
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrf
+                    },
+                    credentials: 'same-origin',
                     body: JSON.stringify({ room })
                 });
+
+                if (!inv.ok) {
+                    console.warn('Proxy invite gagal, coba direct...', inv.status);
+                    inv = await fetch('https://voice.deltabhumi.co.id/invite', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ room })
+                    });
+                }
 
                 if (!inv.ok) {
                     throw new Error(`Undangan gagal: ${inv.status}`);
