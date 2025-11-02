@@ -17,11 +17,14 @@ class HapticFeedback {
      * Check if Vibration API is supported
      */
     checkSupport() {
-        return ('vibrate' in navigator) && (
-            ('ontouchstart' in window) ||
-            ((navigator.maxTouchPoints || 0) > 0) ||
-            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        );
+        const hasVibrate = 'vibrate' in navigator;
+        const hasTouchEvent = 'ontouchstart' in window;
+        const touchPoints = (navigator.maxTouchPoints || 0) > 0;
+        const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Wajib: device bertouch (pointer coarse / touchpoints) atau UA mobile
+        return hasVibrate && (coarse || touchPoints || hasTouchEvent || isMobileUA);
     }
 
     /**
@@ -74,14 +77,18 @@ class HapticFeedback {
      * Execute haptic feedback
      */
     vibrate(pattern = 'tap') {
-        if (!this.isSupported || !this.isEnabled) return;
+        // Hindari warning Chrome: hanya vibrate saat ada user activation (tap/click nyata)
+        const ua = navigator.userActivation;
+        const active = ua && typeof ua.isActive === 'boolean' ? ua.isActive : false;
+
+        if (!this.isSupported || !this.isEnabled || !active) return;
 
         const vibrationPattern = this.patterns[pattern] || this.patterns.tap;
 
         try {
             navigator.vibrate(vibrationPattern);
         } catch (e) {
-            console.log('Haptic feedback not available:', e);
+            // Diam saja bila tidak diizinkan
         }
     }
 
@@ -286,3 +293,33 @@ if (document.readyState === 'loading') {
 
 // Export for use in other scripts
 export default HapticFeedback;
+
+// Footer nav haptic fallback (improves reliability on Android pointer events)
+(function () {
+    if (typeof window === 'undefined') return;
+
+    const handler = (e) => {
+        try {
+            if (!window.hapticFeedback) return;
+
+            const pt = (e.pointerType || '').toLowerCase();
+            // Ignore desktop mouse
+            if (pt === 'mouse') return;
+
+            const target = e.target && e.target.closest
+                ? e.target.closest('nav a, .bottom-nav a, button, a[href], [role="button"], .btn, .clickable')
+                : null;
+            if (!target || target.disabled) return;
+
+            const type = (target.closest('nav, .bottom-nav'))
+                ? 'navigate'
+                : (target.classList && target.classList.contains('btn-primary') ? 'select' : 'tap');
+
+            // Will vibrate only if device supports and there is a user activation
+            window.hapticFeedback.vibrate(type);
+        } catch (_) { /* no-op */ }
+    };
+
+    // Use capture to run before navigation
+    window.addEventListener('pointerdown', handler, { passive: true, capture: true });
+})();
