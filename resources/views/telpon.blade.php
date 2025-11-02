@@ -158,16 +158,61 @@
                 </svg>
             </button>
 
-            <!-- Speaker Button -->
-            <button @click="toggleSpeaker()
-                " class="w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-xl"
+            <!-- Speaker / Output Button -->
+            <button @click="openOutputPicker()"
+                class="w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-xl"
                 :class="speakerOn ? 'bg-white/30 backdrop-blur-md' : 'bg-white/20 backdrop-blur-md hover:bg-white/30'"
-                x-show="isConnected">
+                x-show="isConnected" :title="speakerOn ? 'Speaker aktif' : 'Mode privat (jika didukung)'">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 </svg>
             </button>
+        </div>
+    </div>
+
+    <!-- Output Device Picker Modal -->
+    <div x-show="showOutputPicker" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+        @click.self="showOutputPicker = false">
+        <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-sm" @click="showOutputPicker=false"></div>
+        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-600 to-accent-600 p-4">
+                <h3 class="text-white font-bold">Pilih Output Audio</h3>
+                <p class="text-white/80 text-xs">Beberapa perangkat tidak mendukung pengalihan ke earpiece.</p>
+            </div>
+            <div class="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
+                <template x-if="outputDeviceSupported && audioOutputDevices.length">
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 rounded-xl border hover:bg-gray-50 cursor-pointer">
+                            <input type="radio" name="sink" class="text-primary-600" value="default"
+                                :checked="selectedSinkId === 'default'" @change="selectOutput('default')">
+                            <span class="text-sm text-gray-800">Default (Speaker)</span>
+                        </label>
+                        <template x-for="d in audioOutputDevices" :key="d.deviceId">
+                            <label
+                                class="flex items-center gap-3 p-3 rounded-xl border hover:bg-gray-50 cursor-pointer">
+                                <input type="radio" name="sink" class="text-primary-600" :value="d.deviceId"
+                                    :checked="selectedSinkId === d.deviceId" @change="selectOutput(d.deviceId)">
+                                <span class="text-sm text-gray-800" x-text="d.label || 'Perangkat audio'"></span>
+                            </label>
+                        </template>
+                    </div>
+                </template>
+
+                <template x-if="!outputDeviceSupported || audioOutputDevices.length === 0">
+                    <div class="text-sm text-gray-700 space-y-2">
+                        <p>Browser ini belum mendukung penggantian output audio ke earpiece.</p>
+                        <ul class="list-disc pl-5 text-gray-600">
+                            <li>Sambungkan earphone kabel atau Bluetooth.</li>
+                            <li>Atur output lewat kontrol OS (panel audio/quick settings).</li>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+            <div class="p-3 bg-gray-50">
+                <button class="w-full py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium"
+                    @click="showOutputPicker=false">Tutup</button>
+            </div>
         </div>
     </div>
 
@@ -191,6 +236,14 @@
         roomName: '',
         callDuration: 0,
 
+        // Output device handling
+        audioEls: [],
+        outputDeviceSupported: false,
+        audioOutputDevices: [],
+        selectedSinkId: 'default',
+        showOutputPicker: false,
+        notifyNoOutputControlShown: false,
+
         // LiveKit
         roomRef: null,
         durationInterval: null,
@@ -203,6 +256,72 @@
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        },
+
+        async refreshDevices() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                this.audioOutputDevices = devices.filter(d => d.kind === 'audiooutput');
+            } catch (e) {
+                this.audioOutputDevices = [];
+            }
+        },
+
+        async checkOutputSupport() {
+            await this.refreshDevices();
+            this.outputDeviceSupported =
+                (typeof HTMLMediaElement !== 'undefined' && typeof HTMLMediaElement.prototype.setSinkId === 'function')
+                || (this.roomRef && typeof this.roomRef.setAudioOutputDevice === 'function');
+        },
+
+        // Apply to room and all elements
+        async applyOutputDevice(sinkId = null) {
+            const id = sinkId || this.selectedSinkId || 'default';
+            this.selectedSinkId = id;
+
+            // LiveKit room-level if available
+            if (this.roomRef && typeof this.roomRef.setAudioOutputDevice === 'function') {
+                try {
+                    await this.roomRef.setAudioOutputDevice(id);
+                    console.log('Room audio output set to', id);
+                } catch (e) {
+                    console.warn('Room.setAudioOutputDevice failed:', e.message);
+                }
+            }
+
+            // Each element
+            for (const el of this.audioEls) {
+                if (typeof el.setSinkId === 'function') {
+                    try {
+                        await el.setSinkId(id);
+                        console.log('Element sink set to', id);
+                    } catch (e) {
+                        console.warn('setSinkId failed:', e.message);
+                    }
+                }
+            }
+        },
+
+        openOutputPicker() {
+            // If browser supports sink selection and has devices → show picker
+            if (this.outputDeviceSupported) {
+                this.showOutputPicker = true;
+            } else {
+                // Fallback info
+                if (!this.notifyNoOutputControlShown) {
+                    alert('Peralihan speaker tidak didukung oleh browser ini. Untuk audio privat, gunakan earphone/headset atau pilih output dari panel sistem.');
+                    this.notifyNoOutputControlShown = true;
+                }
+            }
+        },
+
+        async selectOutput(deviceId) {
+            this.selectedSinkId = deviceId || 'default';
+            // Heuristic: if label contains 'speaker' assume loudspeaker, else private
+            const dev = this.audioOutputDevices.find(d => d.deviceId === deviceId);
+            const label = (dev?.label || '').toLowerCase();
+            this.speakerOn = label.includes('speaker') || deviceId === 'default';
+            try { await this.applyOutputDevice(deviceId); } catch (_) {}
         },
 
         async autoStartCall() {
@@ -264,6 +383,8 @@
                     }
                 });
 
+                await this.checkOutputSupport();
+
                 // Setup events
                 this.roomRef.on(RoomEvent.Connected, () => {
                     this.isConnected = true;
@@ -281,7 +402,7 @@
                     }
                 });
 
-                this.roomRef.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                this.roomRef.on(RoomEvent.TrackSubscribed, async (track, publication, participant) => {
                     console.log(`Audio from ${participant.identity}`);
                     if (track.kind === 'audio') {
                         const el = document.createElement('audio');
@@ -289,8 +410,12 @@
                         el.playsInline = true; // iOS Safari
                         track.attach(el);
                         document.body.appendChild(el);
-                        // coba play, bila diblokir user gesture diperlukan
-                        el.play?.().catch(() => {});
+                        this.audioEls.push(el);
+                        try { await el.play?.(); } catch (_) {}
+
+                        // Terapkan preferensi output saat ini (speaker/default)
+                        try { await this.applyOutputDevice(this.selectedSinkId); } catch (_) {}
+
                         this.isSpeaking = true;
                         setTimeout(() => this.isSpeaking = false, 2000);
                     }
@@ -381,10 +506,9 @@
             }
         },
 
-        toggleSpeaker() {
-            this.speakerOn = !this.speakerOn;
-            console.log(this.speakerOn ? 'Speaker on' : 'Speaker off');
-            // Note: Speaker control via Web Audio API would be more complex
+        async toggleSpeaker() {
+            // Deprecated behavior → now open picker
+            this.openOutputPicker();
         },
 
         startDurationTimer() {
