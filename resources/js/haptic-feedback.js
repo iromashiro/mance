@@ -323,3 +323,26 @@ export default HapticFeedback;
     // Use capture to run before navigation
     window.addEventListener('pointerdown', handler, { passive: true, capture: true });
 })();
+
+// Mark footer bottom navigation for haptics without editing Blade
+(() => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  const tagBottomNav = () => {
+    try {
+      const el = document.querySelector('nav.fixed.bottom-0');
+      if (el && !el.classList.contains('bottom-nav')) {
+        el.classList.add('bottom-nav');
+      }
+    } catch (_) { /* no-op */ }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tagBottomNav, { once: true });
+  } else {
+    tagBottomNav();
+  }
+
+  // Handle bfcache restores or SPA-like navigations
+  window.addEventListener('pageshow', tagBottomNav);
+})();
