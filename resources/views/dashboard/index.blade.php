@@ -744,6 +744,63 @@
 <script>
     (() => {
       const DEFAULT_COORD = { lat: -3.731, lng: 103.835 };
+// Client-side 1-hour cache for weather/air API to avoid refetch on each reload
+(() => {
+  try {
+    const TTL_MS = 60 * 60 * 1000; // 1 hour
+    const originalFetch = window.fetch ? window.fetch.bind(window) : null;
+    if (!originalFetch) return;
+
+    const round = (n) => Math.round(((parseFloat(n) || 0) + Number.EPSILON) * 100) / 100;
+
+    const makeKey = (u) => {
+      const url = new URL(u, window.location.origin);
+      const lat = round(url.searchParams.get('lat'));
+      const lng = round(url.searchParams.get('lng'));
+      if (url.pathname.startsWith('/api/wx/weather')) return `wx:weather:${lat}:${lng}`;
+      if (url.pathname.startsWith('/api/wx/air')) return `wx:air:${lat}:${lng}`;
+      return null;
+    };
+
+    window.fetch = async (input, init) => {
+      try {
+        const url = typeof input === 'string' ? input : (input && input.url);
+        if (!url) return originalFetch(input, init);
+
+        const key = makeKey(url);
+        if (!key) return originalFetch(input, init);
+
+        // Try cache first (fresh within TTL)
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const obj = JSON.parse(raw);
+            if (obj && obj.ts && (Date.now() - obj.ts) < TTL_MS && obj.data) {
+              return new Response(JSON.stringify(obj.data), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', 'X-Cache': 'HIT' }
+              });
+            }
+          } catch { /* ignore corrupted cache */ }
+        }
+
+        // Fallback to network and persist
+        const resp = await originalFetch(input, init);
+        try {
+          const cloned = resp.clone();
+          cloned.json().then((data) => {
+            localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+          }).catch(() => { /* ignore non-JSON */ });
+        } catch { /* clone/json may fail - ignore */ }
+        return resp;
+      } catch {
+        return originalFetch(input, init);
+      }
+    };
+  } catch {
+    // no-op
+  }
+})();
 
       // ==== helpers ====
       const $ = id => document.getElementById(id);
