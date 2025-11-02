@@ -346,7 +346,8 @@
         </main>
 
         <!-- Modern Bottom Navigation (Mobile) -->
-        <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white z-50 border-t border-gray-200/50 z-50 shadow-lg">
+        <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200/50 shadow-lg"
+            style="z-index: 45;">
             <div class="grid grid-cols-5 h-16">
                 <a href="{{ route('dashboard') }}" class="group flex flex-col items-center justify-center relative">
                     <div
@@ -386,7 +387,8 @@
                 </a>
 
                 {{-- TOMBOL TENGAH: ARUNA AI dengan Modal --}}
-                <button @click="showArunaModal = true" class="group flex flex-col items-center justify-center relative">
+                <button type="button" @click.prevent="showArunaModal = true"
+                    class="group flex flex-col items-center justify-center relative touch-manipulation">
                     <div class="relative -mt-8">
                         {{-- glow/gradient --}}
                         <div class="absolute -inset-2 bg-gradient-to-r from-blue-500 to-blue-700
@@ -437,21 +439,23 @@
         </nav>
 
         <!-- Aruna AI Modal -->
-        <div x-show="showArunaModal" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4"
-            @click.self="showArunaModal = false">
+        <div x-show="showArunaModal" x-cloak class="fixed inset-0 flex items-center justify-center p-4"
+            style="z-index: 9999;" @click.self="showArunaModal = false" @touchstart.self="showArunaModal = false">
+
             <!-- Backdrop -->
             <div x-show="showArunaModal" x-transition:enter="transition ease-out duration-200"
                 x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                 x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
                 x-transition:leave-end="opacity-0" class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm"
-                @click="showArunaModal = false"></div>
+                @click="showArunaModal = false" @touchstart="showArunaModal = false"></div>
 
             <!-- Modal Content -->
             <div x-show="showArunaModal" x-transition:enter="transition ease-out duration-200"
                 x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                 x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
                 x-transition:leave-end="opacity-0 scale-95"
-                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
+                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden" @click.stop
+                @touchstart.stop>
 
                 <!-- Header dengan Gradient -->
                 <div class="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 p-6 text-center">
@@ -471,7 +475,7 @@
                     <!-- Telpon Option -->
                     <a href="{{ route('telpon') }}"
                         class="group block p-4 bg-gradient-to-r from-primary-50 to-blue-50 hover:from-primary-100 hover:to-blue-100
-                               rounded-2xl border-2 border-primary-200 hover:border-primary-300 transition-all duration-200">
+                               rounded-2xl border-2 border-primary-200 hover:border-primary-300 transition-all duration-200 active:scale-95">
                         <div class="flex items-center gap-4">
                             <div
                                 class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-500 to-blue-600
@@ -496,7 +500,7 @@
                     <!-- Chat Option -->
                     <a href="{{ route('aruna.ai') }}"
                         class="group block p-4 bg-gradient-to-r from-accent-50 to-purple-50 hover:from-accent-100 hover:to-purple-100
-                               rounded-2xl border-2 border-accent-200 hover:border-accent-300 transition-all duration-200">
+                               rounded-2xl border-2 border-accent-200 hover:border-accent-300 transition-all duration-200 active:scale-95">
                         <div class="flex items-center gap-4">
                             <div
                                 class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-accent-500 to-purple-600
@@ -521,8 +525,8 @@
 
                 <!-- Close Button -->
                 <div class="px-6 pb-6">
-                    <button @click="showArunaModal = false"
-                        class="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors">
+                    <button type="button" @click="showArunaModal = false"
+                        class="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-medium rounded-xl transition-colors">
                         Batal
                     </button>
                 </div>
