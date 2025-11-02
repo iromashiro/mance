@@ -50,7 +50,7 @@
 
 @section('content')
 <div x-data="phoneCall()" x-init="autoStartCall()"
-    class="fixed inset-0 bg-gradient-to-br from-primary-600 via-purple-600 to-accent-600 z-50">
+    class="fixed inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 z-50">
 
     <!-- Main Call UI -->
     <div class="h-full flex flex-col items-center justify-center px-6 pb-20">

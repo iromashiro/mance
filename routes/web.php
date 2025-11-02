@@ -158,6 +158,9 @@ Route::prefix('api')->middleware('auth')->group(function () {
     Route::get('/voice/token', [VoiceProxyController::class, 'token'])->name('voice.token');
     Route::post('/voice/invite', [VoiceProxyController::class, 'invite'])->name('voice.invite');
 });
+// Weather proxy endpoints
+Route::get('/weather', [\App\Http\Controllers\WeatherProxyController::class, 'weather'])->name('weather.proxy');
+Route::get('/air', [\App\Http\Controllers\WeatherProxyController::class, 'air'])->name('air.proxy');
 
 // PWA routes
 Route::get('/manifest.json', function () {

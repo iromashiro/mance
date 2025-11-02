@@ -4,6 +4,9 @@ import '../css/app.css';
 import './bootstrap';
 import Alpine from 'alpinejs';
 
+// Import Haptic Feedback untuk mobile experience yang lebih satisfying
+import './haptic-feedback';
+
 // Expose Alpine
 window.Alpine = Alpine;
 Alpine.start();
