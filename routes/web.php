@@ -25,6 +25,13 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
+Route::get('/telpon', function () {
+    if (auth()->check()) {
+        return view('telpon');
+    }
+    return redirect()->route('login');
+})->name('home');
+
 Route::get('/aruna', function () {
     if (auth()->check()) {
         return view('aruna');
