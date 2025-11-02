@@ -54,7 +54,8 @@
     {{-- Walkthrough Overlay (sekali per device setelah login) --}}
     @include('components.walkthrough')
     @include('components.page-loader')
-    <div x-data="{ sidebarOpen: false, showNotifications: false, showProfile: false }" class="min-h-screen">
+    <div x-data="{ sidebarOpen: false, showNotifications: false, showProfile: false, showArunaModal: false }"
+        class="min-h-screen">
 
         <!-- Mobile Sidebar Overlay -->
         <div x-show="sidebarOpen" x-cloak class="relative z-50 lg:hidden">
@@ -384,11 +385,10 @@
                     @endif
                 </a>
 
-                {{-- TOMBOL TENGAH: ARUNA AI --}}
-                <a href="{{route('aruna.ai')}}" {{-- ganti ke rute chat AI kamu --}}
-                    class="group flex flex-col items-center justify-center relative">
+                {{-- TOMBOL TENGAH: ARUNA AI dengan Modal --}}
+                <button @click="showArunaModal = true" class="group flex flex-col items-center justify-center relative">
                     <div class="relative -mt-8">
-                        {{-- glow/gradient biar konsisten dengan tombol lama --}}
+                        {{-- glow/gradient --}}
                         <div class="absolute -inset-2 bg-gradient-to-r from-blue-500 to-blue-700
                                 rounded-2xl blur-md opacity-70 group-hover:opacity-90 transition"></div>
 
@@ -397,7 +397,7 @@
                                 ring-4 ring-white shadow-xl group-hover:scale-110 transition-transform select-none" />
                     </div>
                     <span class="text-xs font-semibold text-gray-900 mt-1">Aruna AI</span>
-                </a>
+                </button>
 
                 <a href="{{ route('news.index') }}" class="group flex flex-col items-center justify-center relative">
                     <div
@@ -435,6 +435,99 @@
                 </a>
             </div>
         </nav>
+
+        <!-- Aruna AI Modal -->
+        <div x-show="showArunaModal" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+            @click.self="showArunaModal = false">
+            <!-- Backdrop -->
+            <div x-show="showArunaModal" x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0" class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm"
+                @click="showArunaModal = false"></div>
+
+            <!-- Modal Content -->
+            <div x-show="showArunaModal" x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
+
+                <!-- Header dengan Gradient -->
+                <div class="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 p-6 text-center">
+                    <div class="flex justify-center mb-4">
+                        <div class="relative">
+                            <div class="absolute -inset-2 bg-white/30 rounded-2xl blur-lg"></div>
+                            <img src="{{ asset('aruna-ai.png') }}" alt="Aruna AI"
+                                class="relative h-20 w-20 rounded-2xl object-cover ring-4 ring-white shadow-xl" />
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-2">Aruna AI</h3>
+                    <p class="text-white/80 text-sm">Pilih cara berinteraksi dengan Aruna</p>
+                </div>
+
+                <!-- Options -->
+                <div class="p-6 space-y-3">
+                    <!-- Telpon Option -->
+                    <a href="{{ route('telpon') }}"
+                        class="group block p-4 bg-gradient-to-r from-primary-50 to-blue-50 hover:from-primary-100 hover:to-blue-100
+                               rounded-2xl border-2 border-primary-200 hover:border-primary-300 transition-all duration-200">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-500 to-blue-600
+                                      rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-900 text-lg mb-1">Panggilan Suara</h4>
+                                <p class="text-sm text-gray-600">Bicara langsung dengan Aruna AI</p>
+                            </div>
+                            <svg class="w-5 h-5 text-primary-600 group-hover:translate-x-1 transition-transform"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                    </a>
+
+                    <!-- Chat Option -->
+                    <a href="{{ route('aruna.ai') }}"
+                        class="group block p-4 bg-gradient-to-r from-accent-50 to-purple-50 hover:from-accent-100 hover:to-purple-100
+                               rounded-2xl border-2 border-accent-200 hover:border-accent-300 transition-all duration-200">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-accent-500 to-purple-600
+                                      rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-900 text-lg mb-1">Chat Percakapan</h4>
+                                <p class="text-sm text-gray-600">Kirim pesan teks ke Aruna AI</p>
+                            </div>
+                            <svg class="w-5 h-5 text-accent-600 group-hover:translate-x-1 transition-transform"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Close Button -->
+                <div class="px-6 pb-6">
+                    <button @click="showArunaModal = false"
+                        class="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modern Toast Notifications -->

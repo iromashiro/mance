@@ -30,7 +30,7 @@ Route::get('/telpon', function () {
         return view('telpon');
     }
     return redirect()->route('login');
-})->name('home');
+})->name('telpon');
 
 Route::get('/aruna', function () {
     if (auth()->check()) {
